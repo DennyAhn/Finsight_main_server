@@ -87,6 +87,9 @@ public class QuizService {
                                 .id(question.getId())
                                 .stemMd(question.getStemMd())
                                 .answerExplanationMd(question.getAnswerExplanationMd())
+                                .hintMd(question.getHintMd())                           // 힌트 정보 추가
+                                .teachingExplainerMd(question.getTeachingExplainerMd()) // 학습 패널 추가
+                                .solvingKeypointsMd(question.getSolvingKeypointsMd())   // 핵심 포인트 추가
                                 .options(question.getOptions() != null ? question.getOptions().stream().map(option ->
                                         QuizResponseDto.OptionDto.builder()
                                                 .id(option.getId())

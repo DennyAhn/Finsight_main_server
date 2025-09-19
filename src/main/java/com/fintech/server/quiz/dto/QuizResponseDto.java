@@ -19,6 +19,9 @@ public class QuizResponseDto {
         private Long id;
         private String stemMd;
         private String answerExplanationMd;
+        private String hintMd;                    // 힌트 정보
+        private String teachingExplainerMd;       // 학습 패널 (초록색 박스)
+        private String solvingKeypointsMd;        // 핵심 포인트 (노란색 박스)
         private List<OptionDto> options;
     }
 

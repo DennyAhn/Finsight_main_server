@@ -23,6 +23,17 @@ public class Question {
     @Column(name = "answer_explanation_md", columnDefinition = "TEXT")
     private String answerExplanationMd;
 
+    // --- 학습 패널 컬럼 ---
+    @Column(name = "hint_md", columnDefinition = "TEXT")
+    private String hintMd;
+
+    @Column(name = "teaching_explainer_md", columnDefinition = "TEXT")
+    private String teachingExplainerMd;
+    
+    @Column(name = "solving_keypoints_md", columnDefinition = "TEXT")
+    private String solvingKeypointsMd;
+    // --- --- --- --- ---
+
     // Question은 Quiz에 속해있습니다 (다대일 관계)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "quiz_id")
