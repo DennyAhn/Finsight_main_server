@@ -154,9 +154,9 @@ CREATE TABLE user_answers (
 ### 답안 제출 응답
 ```json
 {
-  "isCorrect": true,
-  "correctOptionId": 1,
-  "feedback": "정답입니다! 예금과 적금의 차이를 잘 이해하셨네요."
+    "correctOptionId": 1,
+    "feedback": " \"예금은 보통 목돈을 한번에 맡기는 방식 적금 정해진 기간 동안 정기적으로 일정 금액을 납입하는 방식\"",
+    "correct": true
 }
 ```
 
