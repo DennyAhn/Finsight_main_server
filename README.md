@@ -159,6 +159,8 @@ CREATE TABLE user_answers (
     "correct": true
 }
 ```
+### DB architecture
+<iframe width="560" height="315" src='https://dbdiagram.io/e/68b6dacd777b52b76cac53aa/68cd5674a596966eb7d4550a'> </iframe>
 
 ## 🆕 최근 업데이트 (v1.1.0)
 
