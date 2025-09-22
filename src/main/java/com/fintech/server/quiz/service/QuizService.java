@@ -90,7 +90,9 @@ public class QuizService {
                                 .hintMd(question.getHintMd())                           // 힌트 정보 추가
                                 .teachingExplainerMd(question.getTeachingExplainerMd()) // 학습 패널 추가
                                 .solvingKeypointsMd(question.getSolvingKeypointsMd())   // 핵심 포인트 추가
-                                .options(question.getOptions() != null ? question.getOptions().stream().map(option ->
+                                .options(question.getOptions() != null ? question.getOptions().stream()
+                                        .sorted((o1, o2) -> o1.getId().compareTo(o2.getId())) // ID 기준 오름차순 정렬
+                                        .map(option ->
                                         QuizResponseDto.OptionDto.builder()
                                                 .id(option.getId())
                                                 .label(option.getLabel())

@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface QuizRepository extends JpaRepository<Quiz, Long> {
@@ -20,6 +21,11 @@ public interface QuizRepository extends JpaRepository<Quiz, Long> {
            "LEFT JOIN FETCH qs.options " +
            "WHERE q.id = :quizId")
     Optional<Quiz> findByIdWithDetails(@Param("quizId") Long quizId);
+
+    /**
+     * 특정 레벨의 모든 퀴즈를 ID 순서대로 조회
+     */
+    List<Quiz> findByLevelIdOrderById(Long levelId);
 }
 
 /**
