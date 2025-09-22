@@ -91,105 +91,6 @@
 - **스케줄링**: 정기적인 데이터 정리 작업
 - **리소스 관리**: 메모리 및 데이터베이스 리소스 최적화
 
-## 📅 2025-09-23
-
-### 🚀 프론트엔드 개발 지원 완료
-
-#### 1. 게스트 로그인 시스템
-- **API**: `POST /api/auth/guest`
-- **기능**: 게스트 계정 생성 및 JWT 토큰 발급
-- **응답**: 사용자 ID와 토큰 반환
-- **자동 정리**: 12시간 후 자동 삭제 (매 1시간마다 체크)
-
-#### 2. 퀴즈 단계의 유기성 관리
-- **API**: `GET /api/levels/{id}/quizzes?userId={userId}`
-- **기능**: 레벨별 퀴즈 목록과 진행 상황 조회
-- **응답**: 퀴즈별 완료 상태, 정답 수, 소요 시간 등
-
-#### 3. 퀴즈 출력 및 정답 체크
-- **퀴즈 조회**: `GET /api/quizzes/{id}`
-- **답안 제출**: `POST /api/quizzes/submit-answer`
-- **기능**: 
-  - 퀴즈 문제와 선택지 출력
-  - 답안 제출 시 즉시 정답 여부 확인
-  - 피드백과 해설 제공
-
-#### 4. 4문제 중 몇 문제 맞추고 레벨 패스
-- **레벨 진행률**: `GET /api/levels/{id}/progress?userId={userId}`
-- **레벨 완료**: `POST /api/levels/{id}/complete?userId={userId}`
-- **기능**:
-  - 4문제 중 정답 수 계산
-  - 3문제 이상 맞춰야 레벨 통과
-  - 레벨 완료 시 다음 레벨 언락
-
-#### 5. 벳지 시스템
-- **벳지 조회**: `GET /api/badges/user/{userId}`
-- **기능**:
-  - 6단계 벳지 시스템 (브론즈 → 실버 → 골드 → 플레티넘 → 다이아 → 마스터)
-  - 퀴즈 완료 수와 정답 수에 따른 자동 벳지 지급
-  - 벳지 진행률 실시간 업데이트
-
-### 📊 사용자 학습 진행도 확인 API
-
-#### 1. 대시보드 API (종합 학습 현황)
-- **API**: `GET /api/dashboard?userId={userId}`
-- **응답 예시**:
-```json
-{
-  "userInfo": {
-    "userId": 52,
-    "nickname": "익명의 사용자",
-    "currentLevelTitle": "브론즈",
-    "currentLevelNumber": 1,
-    "streak": 0,
-    "totalScore": 0
-  },
-  "learningStats": {
-    "totalLevelsCompleted": 0,
-    "totalQuizzesCompleted": 0,
-    "totalQuestionsAnswered": 0,
-    "totalMinutesSpent": 0,
-    "averageScore": 0.0
-  },
-  "weeklyProgress": [...],
-  "recentActivities": [...],
-  "nextLevelRecommendation": {
-    "levelId": 1,
-    "levelTitle": "초급자",
-    "progressPercentage": 50,
-    "remainingQuizzes": 2,
-    "difficulty": "EASY"
-  }
-}
-```
-
-#### 2. 레벨별 진행률 API
-- **API**: `GET /api/levels/{id}/progress?userId={userId}`
-- **기능**:
-  - 레벨별 퀴즈 완료 현황
-  - 정답 수 / 전체 문제 수
-  - 각 퀴즈별 상세 진행 상황
-  - 레벨 통과 여부 (4문제 중 3문제 이상)
-
-#### 3. 레벨별 퀴즈 목록 API
-- **API**: `GET /api/levels/{id}/quizzes?userId={userId}`
-- **기능**:
-  - 레벨의 모든 퀴즈 목록
-  - 각 퀴즈별 완료 상태
-  - 사용자 답안 기록
-
-#### 4. 벳지 진행 상황
-- **API**: `GET /api/badges/user/{userId}`
-- **기능**:
-  - 현재 벳지 레벨
-  - 벳지 진행률
-  - 획득한 벳지 목록
-
-### 🔧 스케줄링 시스템 활성화
-- **@EnableScheduling** 어노테이션 추가
-- **게스트 계정 정리**: 매 1시간마다 만료된 계정 자동 삭제
-- **벳지 데이터 정리**: 매 1시간마다 12시간 전 게스트 사용자 벳지 데이터 정리
-
 ### 🎯 향후 계획
 
 #### 1. 단기 계획 (1-2주)
@@ -238,13 +139,13 @@
 
 ### 🔄 버전 관리
 
-#### 현재 버전: v1.1.0
-- **주요 기능**: 기본 퀴즈 시스템, 사용자 인증, 대시보드, 게스트 로그인, 학습 진행도 추적, 벳지 시스템
-- **상태**: 개발 완료, 문서화 완료, 프론트엔드 지원 준비 완료
-- **다음 버전**: v1.2.0 (JWT 구현, 테스트 추가)
+#### 현재 버전: v1.0.0
+- **주요 기능**: 기본 퀴즈 시스템, 사용자 인증, 대시보드
+- **상태**: 개발 완료, 문서화 완료
+- **다음 버전**: v1.1.0 (JWT 구현, 테스트 추가)
 
 ---
 
 **업데이트 작성자**: FinTech 교육 플랫폼 개발팀  
-**문서 버전**: 1.1.0  
-**최종 수정일**: 2025-09-23
+**문서 버전**: 1.0.0  
+**최종 수정일**: 2024-01-15
