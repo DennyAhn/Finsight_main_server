@@ -20,6 +20,12 @@
 - ✅ 자동 사용자 생성 (테스트용)
 - ✅ 데이터 영구 보존 (서버 재시작 시에도 유지)
 
+### 탐험지 시스템
+- ✅ 레벨별 퀴즈 상태 조회 API
+- ✅ 사용자별 개인화된 퀴즈 진행도 추적
+- ✅ 주간 학습 현황 데이터 제공
+- ✅ 퀴즈 상태 관리 (COMPLETED, IN_PROGRESS, LOCKED)
+
 ### API 엔드포인트
 
 #### 퀴즈 조회
@@ -36,6 +42,13 @@ Content-Type: application/json
   "questionId": 1,
   "selectedOptionId": 1
 }
+```
+
+#### 탐험지 시스템
+```
+GET /api/sectors
+GET /api/subsectors/{id}
+GET /api/levels/{levelId}/quizzes?userId={userId}
 ```
 
 ## 🛠️ 실행 방법
@@ -159,27 +172,91 @@ CREATE TABLE user_answers (
     "correct": true
 }
 ```
+
+### 탐험지 레벨별 퀴즈 조회 응답
+```json
+{
+    "levelTitle": "기초 금융 상식",
+    "subsectorName": "은행업",
+    "weeklyProgress": [
+        {
+            "dayOfMonth": 16,
+            "completed": true
+        },
+        {
+            "dayOfMonth": 17,
+            "completed": false
+        },
+        {
+            "dayOfMonth": 18,
+            "completed": true
+        },
+        {
+            "dayOfMonth": 19,
+            "completed": false
+        },
+        {
+            "dayOfMonth": 20,
+            "completed": true
+        },
+        {
+            "dayOfMonth": 21,
+            "completed": false
+        },
+        {
+            "dayOfMonth": 22,
+            "completed": false
+        }
+    ],
+    "quizzes": [
+        {
+            "id": 1,
+            "title": "예금의 종류",
+            "sortOrder": 1,
+            "status": "COMPLETED"
+        },
+        {
+            "id": 2,
+            "title": "대출 상품",
+            "sortOrder": 2,
+            "status": "IN_PROGRESS"
+        },
+        {
+            "id": 3,
+            "title": "카드 상품",
+            "sortOrder": 3,
+            "status": "LOCKED"
+        }
+    ]
+}
+```
 ### DB architecture
 [DB 다이어그램 보러가기](https://dbdiagram.io/e/68b6dacd777b52b76cac53aa/68cd5674a596966eb7d4550a)
 
-## 🆕 최근 업데이트 (v1.1.0)
+## 🆕 최근 업데이트 (v1.2.0)
 
 ### ✨ 새로운 기능
+- **탐험지 시스템**: 레벨별 퀴즈 상태 조회 및 개인화된 학습 경로 제공
+- **주간 학습 현황**: 7일간의 학습 진행도를 별 모양으로 표시
+- **퀴즈 상태 관리**: COMPLETED, IN_PROGRESS, LOCKED 상태로 퀴즈 진행도 추적
+- **사용자별 개인화**: 각 사용자의 퀴즈 완료 상태에 따른 맞춤형 안내
 - **학습 패널 지원**: 퀴즈 조회 시 힌트, 학습 패널, 핵심 포인트 정보 제공
 - **데이터 영구 보존**: 서버 재시작 시에도 사용자 답변 기록 유지
 - **자동 사용자 생성**: 테스트용 사용자 자동 생성 기능
-- **H2 제거**: MySQL 전용으로 변경하여 데이터 일관성 향상
 
 ### 🔧 개선사항
+- **퀴즈 상태 로직 개선**: 첫 번째 퀴즈는 IN_PROGRESS 상태로 표시
+- **Options 정렬**: 퀴즈 선택지를 ID 기준 오름차순으로 정렬
+- **API 구조 개선**: 중복 엔드포인트 제거 및 명확한 API 설계
 - `ddl-auto`를 `validate`로 변경하여 기존 데이터 보존
 - Question 엔티티의 options를 List로 변경하여 순서 보장
 - Spring Security 인증 비활성화로 개발 편의성 향상
-- API 응답에 새로운 필드들 추가
 
 ### 🐛 버그 수정
 - `user_answers` 테이블 생성 문제 해결
 - 답안 제출 시 발생하던 에러 수정
 - 데이터베이스 연결 안정성 향상
+- Import 경로 오류 수정
 
 ## 🤝 기여하기
 
