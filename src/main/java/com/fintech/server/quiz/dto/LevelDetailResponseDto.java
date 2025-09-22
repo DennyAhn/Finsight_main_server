@@ -9,8 +9,15 @@ import java.util.List;
 public class LevelDetailResponseDto {
     private String levelTitle;
     private String subsectorName;
+    private List<WeeklyProgressDto> weeklyProgress; 
     private List<QuizStatusDto> quizzes;
 
+    @Getter
+    @Builder
+    public static class WeeklyProgressDto {
+        private int dayOfMonth;
+        private boolean completed;
+    }
     @Getter
     @Builder
     public static class QuizStatusDto {
