@@ -14,4 +14,14 @@ public interface UserAnswerRepository extends JpaRepository<UserAnswer, Long> {
      */
     @Query("SELECT ua FROM UserAnswer ua WHERE ua.user.id = :userId AND ua.question.quiz.id = :quizId")
     List<UserAnswer> findByUserIdAndQuizId(@Param("userId") Long userId, @Param("quizId") Long quizId);
+    
+    /**
+     * 특정 사용자의 모든 답변 조회
+     */
+    List<UserAnswer> findByUserId(Long userId);
+    
+    /**
+     * 특정 사용자의 답변 삭제
+     */
+    void deleteByUserId(Long userId);
 }

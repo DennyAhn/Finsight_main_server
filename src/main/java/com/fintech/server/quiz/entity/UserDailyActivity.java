@@ -5,6 +5,8 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.time.LocalDate;
+
 @Entity
 @Table(name = "user_daily_activity")
 @Getter
@@ -18,4 +20,9 @@ public class UserDailyActivity {
     @MapsId("userId") // UserDailyActivityId의 userId 필드에 매핑
     @JoinColumn(name = "user_id")
     private User user;
+    
+    // 활동 날짜 (편의 메서드)
+    public LocalDate getActivityDate() {
+        return id != null ? id.getActivityDate() : null;
+    }
 }

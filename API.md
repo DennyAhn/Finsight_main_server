@@ -95,6 +95,276 @@ GET /api/health/ping
 pong
 ```
 
+## 📝 오답 노트 API
+
+### 1. 오답 노트 목록 조회
+```http
+GET /api/wrong-notes?userId={userId}&page={page}&size={size}&filter={filter}
+```
+
+**Query Parameters:**
+- `userId`: 사용자 ID (필수)
+- `page`: 페이지 번호 (기본값: 0)
+- `size`: 페이지 크기 (기본값: 20)
+- `filter`: 필터 타입 (`all`, `unresolved`, `resolved`, `needreview`)
+
+**Response (200 OK):**
+```json
+{
+  "wrongNotes": [
+    {
+      "id": 1,
+      "userId": 52,
+      "questionId": 1,
+      "questionText": "'예금'과 '적금'의 사전적 뜻으로 가장 옳은 것은?",
+      "lastAnswerOptionId": 2,
+      "lastAnswerText": "예금은 매달 돈을 내는 것이고, 적금은 한 번에 맡기는 것이다.",
+      "correctOptionId": 1,
+      "correctAnswerText": "예금은 은행에 돈을 한 번에 맡기는 것이고, 적금은 일정 기간 동안 나눠서 돈을 넣는 것이다.",
+      "timesWrong": 2,
+      "firstWrongAt": "2024-01-15T10:30:00",
+      "lastWrongAt": "2024-01-16T14:20:00",
+      "reviewedAt": null,
+      "resolved": false,
+      "personalNoteMd": "예금과 적금의 차이점을 정확히 기억하자",
+      "snapshotTeachingSummaryMd": "예금은 목돈을 한번에, 적금은 매달 일정 금액을",
+      "snapshotTeachingExplainerMd": "예금과 적금의 핵심 차이점 설명...",
+      "snapshotKeypointsMd": "핵심 포인트: 돈을 넣는 방식의 차이",
+      "createdAt": "2024-01-15T10:30:00",
+      "updatedAt": "2024-01-16T14:20:00",
+      "quizTitle": "예금과 적금 개념 퀴즈",
+      "allOptions": [
+        {
+          "id": 1,
+          "text": "예금은 은행에 돈을 한 번에 맡기는 것이고, 적금은 일정 기간 동안 나눠서 돈을 넣는 것이다.",
+          "isCorrect": true
+        }
+      ]
+    }
+  ],
+  "statistics": {
+    "totalCount": 5,
+    "unresolvedCount": 3,
+    "resolvedCount": 2,
+    "needReviewCount": 3
+  },
+  "totalPages": 1,
+  "currentPage": 0,
+  "pageSize": 20
+}
+```
+
+### 2. 특정 오답 노트 상세 조회
+```http
+GET /api/wrong-notes/{noteId}?userId={userId}
+```
+
+**Path Parameters:**
+- `noteId`: 오답 노트 ID
+
+**Query Parameters:**
+- `userId`: 사용자 ID (필수)
+
+**Response (200 OK):**
+```json
+{
+  "id": 1,
+  "userId": 52,
+  "questionId": 1,
+  "questionText": "'예금'과 '적금'의 사전적 뜻으로 가장 옳은 것은?",
+  "lastAnswerOptionId": 2,
+  "lastAnswerText": "예금은 매달 돈을 내는 것이고, 적금은 한 번에 맡기는 것이다.",
+  "correctOptionId": 1,
+  "correctAnswerText": "예금은 은행에 돈을 한 번에 맡기는 것이고, 적금은 일정 기간 동안 나눠서 돈을 넣는 것이다.",
+  "timesWrong": 2,
+  "firstWrongAt": "2024-01-15T10:30:00",
+  "lastWrongAt": "2024-01-16T14:20:00",
+  "reviewedAt": null,
+  "resolved": false,
+  "personalNoteMd": "예금과 적금의 차이점을 정확히 기억하자",
+  "createdAt": "2024-01-15T10:30:00",
+  "updatedAt": "2024-01-16T14:20:00"
+}
+```
+
+### 3. 개인 메모 작성/수정
+```http
+PUT /api/wrong-notes/{noteId}/personal-note?userId={userId}
+```
+
+**Path Parameters:**
+- `noteId`: 오답 노트 ID
+
+**Query Parameters:**
+- `userId`: 사용자 ID (필수)
+
+**Request Body:**
+```
+예금과 적금의 차이점을 정확히 기억하자. 예금은 목돈을 한번에, 적금은 매달 일정 금액을 넣는 방식이다.
+```
+
+**Response (200 OK):**
+오답 노트 상세 정보와 동일한 형태
+
+### 4. 해결 상태 토글
+```http
+PUT /api/wrong-notes/{noteId}/toggle-resolved?userId={userId}
+```
+
+**Path Parameters:**
+- `noteId`: 오답 노트 ID
+
+**Query Parameters:**
+- `userId`: 사용자 ID (필수)
+
+**Response (200 OK):**
+오답 노트 상세 정보와 동일한 형태
+
+### 5. 복습 완료 처리
+```http
+PUT /api/wrong-notes/{noteId}/mark-reviewed?userId={userId}
+```
+
+**Path Parameters:**
+- `noteId`: 오답 노트 ID
+
+**Query Parameters:**
+- `userId`: 사용자 ID (필수)
+
+**Response (200 OK):**
+오답 노트 상세 정보와 동일한 형태
+
+### 6. 오답 노트 삭제
+```http
+DELETE /api/wrong-notes/{noteId}?userId={userId}
+```
+
+**Path Parameters:**
+- `noteId`: 오답 노트 ID
+
+**Query Parameters:**
+- `userId`: 사용자 ID (필수)
+
+**Response (204 No Content)**
+
+### 7. 오답 노트 통계 조회
+```http
+GET /api/wrong-notes/statistics?userId={userId}
+```
+
+**Query Parameters:**
+- `userId`: 사용자 ID (필수)
+
+**Response (200 OK):**
+```json
+{
+  "totalCount": 5,
+  "unresolvedCount": 3,
+  "resolvedCount": 2,
+  "needReviewCount": 3
+}
+```
+
+## 🔧 관리자 오답 노트 통계 API
+
+### 1. 전체 오답 노트 통계
+```http
+GET /api/admin/wrong-notes/statistics/overall
+```
+
+**Response (200 OK):**
+```json
+{
+  "totalWrongNotesCount": 150,
+  "totalUniqueUsersCount": 45,
+  "sectorStatistics": [
+    {
+      "sectorId": 1,
+      "sectorName": "예적금",
+      "sectorSlug": "savings",
+      "totalWrongCount": 80,
+      "uniqueUsersCount": 25,
+      "subsectors": [
+        {
+          "subsectorId": 1,
+          "subsectorName": "예금 상품",
+          "subsectorSlug": "deposit-products",
+          "totalWrongCount": 40,
+          "uniqueUsersCount": 20,
+          "levels": [
+            {
+              "levelId": 1,
+              "levelNumber": 1,
+              "levelTitle": "기본 개념",
+              "totalWrongCount": 25,
+              "uniqueUsersCount": 15,
+              "quizzes": [
+                {
+                  "quizId": 1,
+                  "quizTitle": "예금과 적금 개념 퀴즈",
+                  "totalWrongCount": 15,
+                  "uniqueUsersCount": 10,
+                  "questions": [
+                    {
+                      "questionId": 1,
+                      "questionText": "'예금'과 '적금'의 사전적 뜻으로 가장 옳은 것은?",
+                      "wrongCount": 8,
+                      "uniqueUsersCount": 6,
+                      "recentWrongUsers": [
+                        {
+                          "userId": 52,
+                          "userNickname": "학습자1",
+                          "userEmail": "user1@example.com",
+                          "timesWrong": 2,
+                          "lastWrongAt": "2024-01-16T14:20:00",
+                          "resolved": false
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+```
+
+### 2. 섹터별 오답 노트 통계
+```http
+GET /api/admin/wrong-notes/statistics/sector/{sectorId}
+```
+
+**Path Parameters:**
+- `sectorId`: 섹터 ID
+
+### 3. 서브섹터별 오답 노트 통계
+```http
+GET /api/admin/wrong-notes/statistics/subsector/{subsectorId}
+```
+
+**Path Parameters:**
+- `subsectorId`: 서브섹터 ID
+
+### 4. 퀴즈별 오답 노트 통계
+```http
+GET /api/admin/wrong-notes/statistics/quiz/{quizId}
+```
+
+**Path Parameters:**
+- `quizId`: 퀴즈 ID
+
+### 5. 관리자 대시보드
+```http
+GET /api/admin/wrong-notes/dashboard
+```
+
+**Response (200 OK):**
+전체 통계와 동일한 형태
+
 ## 📊 대시보드 API
 
 ### 1. 사용자 대시보드 조회
@@ -490,11 +760,16 @@ POST /api/levels/{id}/start?userId={userId}
 
 ## 🔧 개발자 참고사항
 
-### 1. 인증 헤더
-JWT 토큰이 구현되면 다음 헤더를 포함해야 합니다:
+### 1. 인증 헤더 (✅ 구현 완료)
+JWT 토큰을 사용한 인증이 구현되었습니다. 다음 헤더를 포함하여 API를 호출하세요:
 ```http
 Authorization: Bearer {access_token}
 ```
+
+**인증 동작 방식:**
+- Authorization 헤더가 있으면 JWT 토큰에서 사용자 ID 자동 추출
+- 토큰이 없거나 유효하지 않으면 요청 본문의 `userId` 필드 사용 (Fallback)
+- 모든 API는 여전히 토큰 없이도 접근 가능 (테스트 편의성)
 
 ### 2. 요청 제한
 - API 호출 빈도 제한: 분당 100회
@@ -509,6 +784,11 @@ Authorization: Bearer {access_token}
 
 ---
 
-**API 문서 버전**: 1.0.0  
-**최종 업데이트**: 2024-01-15  
-**문서 작성자**: FinTech 교육 플랫폼 개발팀
+**API 문서 버전**: 1.1.0  
+**최종 업데이트**: 2025-09-25  
+**문서 작성자**: FinTech 안현진
+
+### 📝 v1.1.0 업데이트 내용
+- JWT 토큰 인증 시스템 구현 완료
+- 사용자 ID 일관성 문제 해결
+- 인증 헤더 사용 방법 업데이트

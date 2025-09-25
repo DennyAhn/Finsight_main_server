@@ -14,4 +14,10 @@ public interface UserDailyActivityRepository extends JpaRepository<UserDailyActi
     
     // 특정 사용자의 특정 날짜 활동 기록을 조회합니다.
     Optional<UserDailyActivity> findByIdUserIdAndIdActivityDate(Long userId, LocalDate activityDate);
+    
+    // 특정 사용자의 활동 기록을 ID 내림차순으로 조회
+    List<UserDailyActivity> findByIdUserIdOrderByIdActivityDateDesc(Long userId);
+    
+    // 특정 사용자의 활동 기록 삭제
+    void deleteByIdUserId(Long userId);
 }

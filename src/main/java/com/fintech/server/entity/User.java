@@ -5,6 +5,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Table(name = "users")
 @Getter
@@ -21,6 +23,12 @@ public class User {
 
     @Column(nullable = false) // 연락처용 이메일 (필수)
     private String email;
+
+    @Column(name = "is_guest", nullable = false)
+    private Boolean isGuest = false;
+
+    @Column(name = "created_at", nullable = false)
+    private LocalDateTime createdAt = LocalDateTime.now();
 
     // avatar_url, age_group 등 다른 프로필 컬럼들도 여기에 추가할 수 있습니다.
     

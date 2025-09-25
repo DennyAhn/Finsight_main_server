@@ -6,6 +6,7 @@ import com.fintech.server.repository.UserRepository;
 import com.fintech.server.quiz.repository.UserAnswerRepository;
 import com.fintech.server.quiz.repository.UserDailyActivityRepository;
 import com.fintech.server.quiz.repository.UserProgressRepository;
+import com.fintech.server.quiz.repository.UserWrongNoteRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -24,6 +25,7 @@ public class GuestAccountCleanupService {
     private final UserRepository userRepository;
     private final UserAnswerRepository userAnswerRepository;
     private final UserDailyActivityRepository userDailyActivityRepository;
+    private final UserWrongNoteRepository userWrongNoteRepository;
     private final UserProgressRepository userProgressRepository;
 
     /**
@@ -52,6 +54,7 @@ public class GuestAccountCleanupService {
                 userAnswerRepository.deleteByUserId(userId);
                 userDailyActivityRepository.deleteByIdUserId(userId);
                 userProgressRepository.deleteByUserId(userId);
+                userWrongNoteRepository.deleteByUserId(userId);
                 
                 // 계정 삭제
                 accountRepository.delete(account);
@@ -85,6 +88,7 @@ public class GuestAccountCleanupService {
             userAnswerRepository.deleteByUserId(userId);
             userDailyActivityRepository.deleteByIdUserId(userId);
             userProgressRepository.deleteByUserId(userId);
+            userWrongNoteRepository.deleteByUserId(userId);
             
             // 계정 및 사용자 삭제
             accountRepository.delete(account);

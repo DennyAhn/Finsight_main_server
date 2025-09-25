@@ -5,6 +5,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Table(name = "accounts")
 @Getter
@@ -33,6 +35,12 @@ public class Account {
 
     @Column(name = "is_email_verified")
     private boolean isEmailVerified = false;
+
+    @Column(name = "last_login_at")
+    private LocalDateTime lastLoginAt;
+
+    @Column(name = "expires_at")
+    private LocalDateTime expiresAt;
 
     // DB의 ENUM 타입과 매핑
     @Enumerated(EnumType.STRING)

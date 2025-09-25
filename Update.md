@@ -1,5 +1,57 @@
 # 업데이트 내역
 
+## 📅 2025-09-25
+
+### 🔐 JWT 인증 시스템 구현
+
+#### 1. 사용자 ID 일관성 문제 해결
+**문제점:**
+- 게스트 로그인: 사용자 ID 61 생성
+- 퀴즈 답변 제출: 사용자 ID 62로 오답 노트 생성 (❌ 불일치)
+
+**해결책:**
+- JWT 인증 필터 구현 (`JwtAuthenticationFilter.java`)
+- Spring Security 설정 업데이트 (`SecurityConfig.java`)
+- QuizService에서 JWT 토큰 기반 사용자 ID 추출 (`QuizService.java`)
+
+**결과:**
+- 게스트 로그인: 사용자 ID 63 생성 + JWT 토큰 발급
+- 퀴즈 답변 제출: 동일한 사용자 ID 63으로 오답 노트 생성 (✅ 일치)
+
+#### 2. 구현된 파일들
+- `src/main/java/com/fintech/server/config/JwtAuthenticationFilter.java` (신규)
+- `src/main/java/com/fintech/server/config/SecurityConfig.java` (수정)
+- `src/main/java/com/fintech/server/quiz/service/QuizService.java` (수정)
+
+#### 3. API 호출 방식 개선
+**권장 방식 (JWT 토큰 사용):**
+```bash
+# 1. 게스트 로그인
+curl -X POST http://localhost:8080/api/auth/guest
+
+# 2. JWT 토큰을 헤더에 포함
+curl -X POST http://localhost:8080/api/quizzes/submit-answer \
+  -H "Authorization: Bearer {token}" \
+  -H "Content-Type: application/json" \
+  -d '{"quizId":1,"questionId":1,"selectedOptionId":1}'
+```
+
+**기존 방식 (Fallback - 여전히 작동):**
+```bash
+curl -X POST http://localhost:8080/api/quizzes/submit-answer \
+  -H "Content-Type: application/json" \
+  -d '{"quizId":1,"questionId":1,"selectedOptionId":1,"userId":61}'
+```
+
+#### 4. 테스트 결과
+- ✅ 게스트 로그인 성공
+- ✅ JWT 토큰 기반 퀴즈 답변 제출 성공
+- ✅ 사용자 ID 일관성 유지
+- ✅ 오답 노트 정상 생성
+- ✅ 기존 API 호환성 유지
+
+---
+
 ## 📅 2024-01-15
 
 ### 🚀 주요 업데이트
@@ -190,15 +242,96 @@
 - **게스트 계정 정리**: 매 1시간마다 만료된 계정 자동 삭제
 - **벳지 데이터 정리**: 매 1시간마다 12시간 전 게스트 사용자 벳지 데이터 정리
 
+## 📅 2024-09-25
+
+### 🚀 오답 노트 시스템 구현 완료
+
+#### 1. 오답 노트 핵심 기능 구현
+- **자동 오답 노트 생성**: 사용자가 퀴즈를 틀리면 자동으로 오답 노트 생성
+- **중복 문제 처리**: 같은 문제를 다시 틀리면 `times_wrong` 카운트 증가
+- **학습 패널 스냅샷**: 문제의 학습 내용을 당시 상태로 보존
+- **개인 메모 기능**: 사용자가 직접 메모를 작성하여 복습 효율성 향상
+
+#### 2. 사용자용 오답 노트 API (10개)
+**조회 기능 (5개)**
+- `GET /api/wrong-notes` - 오답 노트 목록 조회 (필터링 지원)
+  - `filter=all`: 전체 오답 노트
+  - `filter=unresolved`: 미해결 문제만
+  - `filter=resolved`: 해결된 문제만 (복습용)
+  - `filter=needreview`: 복습 필요 문제 (1회 이상 틀린 문제)
+- `GET /api/wrong-notes/{noteId}` - 특정 오답 노트 상세 조회
+- `GET /api/wrong-notes/statistics` - 개인 오답 노트 통계
+
+**관리 기능 (5개)**
+- `PUT /api/wrong-notes/{noteId}/personal-note` - 개인 메모 작성/수정
+- `PUT /api/wrong-notes/{noteId}/toggle-resolved` - 해결 상태 토글
+- `PUT /api/wrong-notes/{noteId}/mark-reviewed` - 복습 완료 처리
+- `DELETE /api/wrong-notes/{noteId}` - 오답 노트 삭제
+
+#### 3. 관리자용 통계 API (5개)
+**계층별 통계 조회**
+- `GET /api/admin/wrong-notes/statistics/overall` - 전체 오답 통계
+- `GET /api/admin/wrong-notes/statistics/sector/{sectorId}` - 섹터별 통계
+- `GET /api/admin/wrong-notes/statistics/subsector/{subsectorId}` - 서브섹터별 통계
+- `GET /api/admin/wrong-notes/statistics/quiz/{quizId}` - 퀴즈별 통계
+- `GET /api/admin/wrong-notes/dashboard` - 관리자 대시보드
+
+#### 4. 데이터베이스 스키마 추가
+**user_wrong_notes 테이블 생성**
+```sql
+- id: 오답 노트 고유 식별자
+- user_id: 사용자 외래 키
+- question_id: 문제 외래 키
+- last_answer_option_id: 마지막 틀린 선택지
+- correct_option_id: 정답 선택지 (스냅샷)
+- times_wrong: 틀린 횟수 (기본값: 1)
+- first_wrong_at: 처음 틀린 시간
+- last_wrong_at: 마지막으로 틀린 시간
+- reviewed_at: 복습 완료 시간
+- resolved: 해결 여부 (기본값: false)
+- personal_note_md: 개인 메모 (마크다운)
+- snapshot_*: 학습 패널 스냅샷 필드들
+- created_at, updated_at: 생성/수정 시간
+```
+
+#### 5. 자동화 기능
+**QuizService 통합**
+- 답변 제출 시 틀린 경우 자동으로 오답 노트 생성
+- 기존 오답 노트가 있으면 횟수 증가 및 최신 정보 업데이트
+
+**게스트 계정 정리**
+- 게스트 사용자 삭제 시 관련 오답 노트도 함께 정리
+- 12시간 후 만료된 게스트 계정의 모든 데이터 자동 삭제
+
+#### 6. 기술적 구현 사항
+**엔티티 및 레포지토리**
+- `UserWrongNote` 엔티티 생성
+- `UserWrongNoteRepository` 생성 (통계 쿼리 포함)
+- `QuestionRepository` 추가 생성
+
+**서비스 레이어**
+- `WrongNoteService`: 사용자용 오답 노트 관리
+- `AdminWrongNoteService`: 관리자용 통계 서비스
+
+**컨트롤러**
+- `WrongNoteController`: 사용자용 API
+- `AdminWrongNoteController`: 관리자용 API
+
+**DTO 설계**
+- `WrongNoteDto`: 사용자용 데이터 전송 객체
+- `AdminWrongNoteDto`: 관리자용 통계 데이터 객체
+
 ### 🎯 향후 계획
 
 #### 1. 단기 계획 (1-2주)
+- [x] 오답 노트 시스템 구현 완료
 - [ ] JWT 토큰 인증 시스템 완전 구현
 - [ ] Swagger UI 설정 및 API 문서 자동화
 - [ ] 단위 테스트 및 통합 테스트 작성
 - [ ] 데이터베이스 마이그레이션 스크립트 작성
 
 #### 2. 중기 계획 (1-2개월)
+- [ ] 커뮤니티 게시물 시스템 구현
 - [ ] 사용자 프로필 관리 기능 추가
 - [ ] 퀴즈 통계 및 분석 기능 강화
 - [ ] 실시간 알림 시스템 구현
