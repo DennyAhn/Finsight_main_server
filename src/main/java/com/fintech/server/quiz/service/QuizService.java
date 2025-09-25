@@ -12,6 +12,9 @@ import com.fintech.server.quiz.repository.QuizRepository;
 import com.fintech.server.quiz.repository.UserAnswerRepository;
 import com.fintech.server.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,12 +24,14 @@ import java.util.stream.Collectors;
 @Service
 @Transactional(readOnly = true)
 @RequiredArgsConstructor
+@Slf4j
 public class QuizService {
 
     private final QuizRepository quizRepository;
     private final QuestionOptionRepository questionOptionRepository;
     private final UserAnswerRepository userAnswerRepository;
     private final UserRepository userRepository; // 임시로 사용자 정보를 가져오기 위해 추가
+    private final WrongNoteService wrongNoteService; // 오답 노트 서비스 추가
 
     /**
      * 특정 ID의 퀴즈 정보를 조회하는 메소드
@@ -42,17 +47,11 @@ public class QuizService {
      */
     @Transactional
     public AnswerResponseDto submitAnswer(AnswerRequestDto requestDto) {
-        // [!] 중요: 실제 서비스에서는 Spring Security의 인증 정보에서 사용자 ID를 가져와야 합니다.
-        // 지금은 테스트를 위해 ID가 1인 사용자를 임시로 사용합니다.
-        User currentUser = userRepository.findById(1L)
-                .orElseGet(() -> {
-                    // 사용자가 없으면 테스트용 사용자를 생성
-                    User testUser = new User();
-                    testUser.setId(1L);
-                    testUser.setNickname("테스트사용자");
-                    testUser.setEmail("test@example.com");
-                    return userRepository.save(testUser);
-                });
+        // Spring Security Context에서 인증된 사용자 ID 가져오기
+        Long userId = getCurrentUserId(requestDto.getUserId());
+        
+        User currentUser = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
 
         QuestionOption selectedOption = questionOptionRepository.findById(requestDto.getSelectedOptionId())
                 .orElseThrow(() -> new RuntimeException("Option not found with id: " + requestDto.getSelectedOptionId()));
@@ -67,6 +66,22 @@ public class QuizService {
         userAnswer.setCorrect(isCorrect);
         userAnswerRepository.save(userAnswer);
 
+        // 틀린 답변인 경우 오답 노트 자동 생성
+        if (!isCorrect) {
+            try {
+                wrongNoteService.createOrUpdateWrongNote(
+                    currentUser.getId(), 
+                    requestDto.getQuestionId(), 
+                    requestDto.getSelectedOptionId()
+                );
+                log.info("오답 노트 자동 생성 완료: userId={}, questionId={}", 
+                        currentUser.getId(), requestDto.getQuestionId());
+            } catch (Exception e) {
+                log.error("오답 노트 생성 중 오류 발생", e);
+                // 오답 노트 생성 실패해도 답변 제출은 성공으로 처리
+            }
+        }
+
         // 정답 옵션 정보 조회
         QuestionOption correctOption = questionOptionRepository.findCorrectOptionByQuestionId(requestDto.getQuestionId())
                 .orElseThrow(() -> new RuntimeException("Correct option not found for question id: " + requestDto.getQuestionId()));
@@ -76,6 +91,34 @@ public class QuizService {
                 .correctOptionId(correctOption.getId())
                 .feedback(selectedOption.getQuestion().getAnswerExplanationMd())
                 .build();
+    }
+
+    /**
+     * 현재 인증된 사용자 ID를 가져오는 메서드
+     * JWT 토큰이 있으면 토큰에서 추출, 없으면 fallback 사용자 ID 사용
+     */
+    private Long getCurrentUserId(Long fallbackUserId) {
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            
+            if (authentication != null && authentication.getPrincipal() instanceof Long) {
+                Long authenticatedUserId = (Long) authentication.getPrincipal();
+                log.debug("JWT 토큰에서 사용자 ID 추출: {}", authenticatedUserId);
+                return authenticatedUserId;
+            }
+        } catch (Exception e) {
+            log.warn("Spring Security Context에서 사용자 ID 추출 실패: {}", e.getMessage());
+        }
+        
+        // JWT 토큰이 없거나 유효하지 않은 경우 fallback 사용
+        if (fallbackUserId != null) {
+            log.debug("Fallback 사용자 ID 사용: {}", fallbackUserId);
+            return fallbackUserId;
+        }
+        
+        // 기본값으로 1L 사용 (테스트 목적)
+        log.warn("사용자 ID를 찾을 수 없어 기본값(1) 사용");
+        return 1L;
     }
 
     private QuizResponseDto convertToDto(Quiz quiz) {
