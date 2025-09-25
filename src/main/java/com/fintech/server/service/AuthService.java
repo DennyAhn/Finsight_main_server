@@ -42,7 +42,7 @@ public class AuthService {
                     guestUser.getId(), guestAccount.getId());
             
             return TokenResponseDto.builder()
-                    .token(token)
+                    .accessToken(token)
                     .userId(guestUser.getId())
                     .build();
                     
@@ -60,6 +60,7 @@ public class AuthService {
         guestUser.setNickname("익명의 사용자" + System.currentTimeMillis());
         guestUser.setEmail("guest_" + UUID.randomUUID().toString() + "@example.com");
         guestUser.setCreatedAt(java.time.LocalDateTime.now());
+        guestUser.setIsGuest(true); // 게스트 사용자로 설정
         
         return userRepository.save(guestUser);
     }

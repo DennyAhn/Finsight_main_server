@@ -8,6 +8,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*; // PostMapping, RequestBody 임포트 추가
 
+import java.util.HashMap;
+import java.util.Map;
+
 @RestController
 @RequestMapping("/quizzes") 
 @RequiredArgsConstructor
@@ -44,6 +47,26 @@ public class QuizController {
             return ResponseEntity.badRequest().body("Error: " + e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body("Internal server error: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 퀴즈 완료 처리 API
+     */
+    @PostMapping("/{id}/complete")
+    public ResponseEntity<?> completeQuiz(
+            @PathVariable("id") Long quizId,
+            @RequestParam("userId") Long userId) {
+        try {
+            // 퀴즈 완료 로직 구현 - 실제로는 QuizService에서 처리해야 함
+            Map<String, Object> response = new HashMap<>();
+            response.put("totalQuestions", 1);
+            response.put("correctAnswers", 1);
+            response.put("passed", true);
+            
+            return ResponseEntity.ok().body(response);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body("Error completing quiz: " + e.getMessage());
         }
     }
 }

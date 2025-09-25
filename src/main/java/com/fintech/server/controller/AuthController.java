@@ -4,6 +4,7 @@ import com.fintech.server.dto.AuthRequestDto;
 import com.fintech.server.dto.TokenResponseDto;
 import com.fintech.server.entity.User;
 import com.fintech.server.service.UserService;
+import com.fintech.server.service.AuthService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -38,7 +39,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
     private final UserService userService;
-    // private final AuthService authService; // 추후 로그인 로직을 별도 서비스로 분리하는 것이 좋습니다.
+    private final AuthService authService;
 
     /**
      * 회원가입 API
@@ -102,10 +103,46 @@ public class AuthController {
         
         // TODO: 실제 로그인 로직 구현 (이메일/비밀번호 검증, JWT 토큰 생성)
         
-        TokenResponseDto token = new TokenResponseDto("임시_액세스_토큰_입니다._나중에_JWT로_교체하세요.");
+        TokenResponseDto token = TokenResponseDto.builder()
+                .accessToken("임시_액세스_토큰_입니다._나중에_JWT로_교체하세요.")
+                .build();
         
         log.info("임시 토큰 발급 완료: email={}", requestDto.getEmail());
         return ResponseEntity.ok(token);
+    }
+
+    /**
+     * 게스트 로그인 API
+     *
+     * 🌐 HTTP Method: POST
+     * 🔗 URL: /api/auth/guest
+     *
+     * 📥 Request Body: 없음 (빈 요청)
+     *
+     * 📤 Response (200 OK):
+     * {
+     *   "accessToken": "eyJhbGciOiJIUzUxMiJ9...",
+     *   "userId": 123
+     * }
+     *
+     * 📤 Error Response (500 Internal Server Error):
+     * - 게스트 사용자 생성 실패 시
+     */
+    @PostMapping("/guest")
+    public ResponseEntity<?> guestLogin() {
+        try {
+            TokenResponseDto response = authService.createGuestUserAndLogin();
+            log.info("게스트 로그인 성공: userId={}", response.getUserId());
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            log.error("게스트 로그인 실패", e);
+            return ResponseEntity.internalServerError()
+                    .body("게스트 로그인에 실패했습니다: " + e.getMessage());
+        } catch (Exception e) {
+            log.error("게스트 로그인 중 예상치 못한 오류 발생", e);
+            return ResponseEntity.internalServerError()
+                    .body("게스트 로그인 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
+        }
     }
 }
 
