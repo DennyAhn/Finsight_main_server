@@ -32,6 +32,7 @@ public class QuizService {
     private final UserAnswerRepository userAnswerRepository;
     private final UserRepository userRepository; // 임시로 사용자 정보를 가져오기 위해 추가
     private final WrongNoteService wrongNoteService; // 오답 노트 서비스 추가
+    private final BadgeService badgeService; // 배지 서비스 추가
 
     /**
      * 특정 ID의 퀴즈 정보를 조회하는 메소드
@@ -80,6 +81,14 @@ public class QuizService {
                 log.error("오답 노트 생성 중 오류 발생", e);
                 // 오답 노트 생성 실패해도 답변 제출은 성공으로 처리
             }
+        }
+
+        // 퀴즈 답변 후 배지 업그레이드 확인
+        try {
+            badgeService.updateUserBadgeProgress(currentUser.getId());
+            log.info("배지 진행 상황 업데이트 완료: userId={}", currentUser.getId());
+        } catch (Exception e) {
+            log.error("배지 업그레이드 확인 중 오류 발생", e);
         }
 
         // 정답 옵션 정보 조회

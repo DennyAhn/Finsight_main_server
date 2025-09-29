@@ -1,5 +1,6 @@
 package com.fintech.server.entity;
 
+import com.fintech.server.quiz.entity.Badge;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -29,6 +30,11 @@ public class User {
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
+
+    // 현재 표시 중인 대표 배지 (nullable)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "displayed_badge_id")
+    private Badge displayedBadge;
 
     // avatar_url, age_group 등 다른 프로필 컬럼들도 여기에 추가할 수 있습니다.
     

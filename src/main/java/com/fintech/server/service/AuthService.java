@@ -4,6 +4,8 @@ import com.fintech.server.config.JwtUtil;
 import com.fintech.server.dto.TokenResponseDto;
 import com.fintech.server.entity.Account;
 import com.fintech.server.entity.User;
+import com.fintech.server.quiz.entity.Badge;
+import com.fintech.server.quiz.repository.BadgeRepository;
 import com.fintech.server.repository.AccountRepository;
 import com.fintech.server.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +23,7 @@ public class AuthService {
 
     private final UserRepository userRepository;
     private final AccountRepository accountRepository;
+    private final BadgeRepository badgeRepository;
     private final JwtUtil jwtUtil;
 
     /**
@@ -61,6 +64,15 @@ public class AuthService {
         guestUser.setEmail("guest_" + UUID.randomUUID().toString() + "@example.com");
         guestUser.setCreatedAt(java.time.LocalDateTime.now());
         guestUser.setIsGuest(true); // 게스트 사용자로 설정
+        
+        // 기본 브론즈 배지 부여 (level_number = 1)
+        Badge bronzeBadge = badgeRepository.findByLevelNumber(1).orElse(null);
+        if (bronzeBadge != null) {
+            guestUser.setDisplayedBadge(bronzeBadge);
+            log.info("새 게스트 사용자에게 브론즈 배지 부여: {}", bronzeBadge.getName());
+        } else {
+            log.warn("브론즈 배지를 찾을 수 없습니다. 배지 없이 사용자 생성");
+        }
         
         return userRepository.save(guestUser);
     }

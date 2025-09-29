@@ -11,8 +11,8 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableJpaAuditing // @CreatedDate, @LastModifiedDate 어노테이션을 활성화합니다.
 @EnableScheduling // 스케줄링 기능을 활성화합니다.
 // ▼▼▼ 아래 두 어노테이션을 추가하여 스캔 경로를 명확히 지정합니다. ▼▼▼
-@EnableJpaRepositories(basePackages = {"com.fintech.server.repository", "com.fintech.server.quiz.repository"})
-@EntityScan(basePackages = {"com.fintech.server.entity", "com.fintech.server.quiz.entity"})
+@EnableJpaRepositories(basePackages = {"com.fintech.server.repository", "com.fintech.server.quiz.repository", "com.fintech.server.community.repository"})
+@EntityScan(basePackages = {"com.fintech.server.entity", "com.fintech.server.quiz.entity", "com.fintech.server.community.entity"})
 public class FinMainServerApplication {
 
     public static void main(String[] args) {

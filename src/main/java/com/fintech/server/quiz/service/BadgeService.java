@@ -1,10 +1,12 @@
 package com.fintech.server.quiz.service;
 
+import com.fintech.server.entity.User;
 import com.fintech.server.quiz.entity.Badge;
 import com.fintech.server.quiz.entity.UserBadge;
 import com.fintech.server.quiz.repository.BadgeRepository;
 import com.fintech.server.quiz.repository.UserBadgeRepository;
 import com.fintech.server.quiz.repository.UserAnswerRepository;
+import com.fintech.server.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -21,16 +23,25 @@ public class BadgeService {
     private final BadgeRepository badgeRepository;
     private final UserBadgeRepository userBadgeRepository;
     private final UserAnswerRepository userAnswerRepository;
+    private final UserRepository userRepository;
 
     /**
-     * 사용자의 벳지 진행 상황 업데이트
+     * 사용자의 벳지 진행 상황 업데이트 및 displayedBadge 자동 업데이트
      */
     @Transactional
     public void updateUserBadgeProgress(Long userId) {
         List<Badge> allBadges = badgeRepository.findAllByOrderByLevelNumberAsc();
+        Badge previousHighestBadge = getCurrentBadgeLevel(userId);
         
         for (Badge badge : allBadges) {
             updateBadgeProgress(userId, badge);
+        }
+        
+        // 배지 업그레이드 확인 및 User의 displayedBadge 업데이트
+        Badge currentHighestBadge = getCurrentBadgeLevel(userId);
+        if (previousHighestBadge == null || 
+            (currentHighestBadge != null && !currentHighestBadge.getId().equals(previousHighestBadge.getId()))) {
+            updateUserDisplayedBadge(userId, currentHighestBadge);
         }
     }
 
@@ -163,11 +174,11 @@ public class BadgeService {
         Badge silver = new Badge();
         silver.setCode("SILVER");
         silver.setName("실버");
-        silver.setDescription("두 번째 벳지입니다. 6개의 퀴즈를 완료하고 12개의 문제를 맞춰보세요!");
+        silver.setDescription("두 번째 벳지입니다. 3개의 문제를 맞춰보세요!");
         silver.setIconUrl("/icons/silver.png");
         silver.setLevelNumber(2);
-        silver.setRequiredQuizzes(6);
-        silver.setRequiredCorrectAnswers(12);
+        silver.setRequiredQuizzes(3);
+        silver.setRequiredCorrectAnswers(3);
         badgeRepository.save(silver);
 
         Badge gold = new Badge();
@@ -211,5 +222,18 @@ public class BadgeService {
         badgeRepository.save(master);
 
         log.info("Badge system initialized with 6 levels");
+    }
+
+    /**
+     * User의 displayedBadge 업데이트
+     */
+    @Transactional
+    public void updateUserDisplayedBadge(Long userId, Badge newBadge) {
+        User user = userRepository.findById(userId).orElse(null);
+        if (user != null) {
+            user.setDisplayedBadge(newBadge);
+            userRepository.save(user);
+            log.info("User {} displayedBadge updated to: {}", userId, newBadge != null ? newBadge.getName() : "null");
+        }
     }
 }
