@@ -1,0 +1,98 @@
+# ===================================================================
+# Docker Compose for Production (AWS RDS)
+# ===================================================================
+
+version: '3.8'
+
+services:
+  # Spring Boot 애플리케이션 (프로덕션)
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fintech-app-prod
+    restart: unless-stopped
+    expose:
+      - "8080"
+    environment:
+      # 프로덕션 프로파일 활성화
+      SPRING_PROFILES_ACTIVE: prod
+      
+      # AWS RDS 연결 정보
+      SPRING_DATASOURCE_URL: jdbc:mysql://finquiz-db.c7gqm40cytz9.ap-northeast-2.rds.amazonaws.com:3306/findb?useSSL=true&serverTimezone=UTC&characterEncoding=UTF-8&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: admin
+      SPRING_DATASOURCE_PASSWORD: Aa5051140!!
+      SPRING_DATASOURCE_DRIVER_CLASS_NAME: com.mysql.cj.jdbc.Driver
+      
+      # JPA 설정
+      SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+      SPRING_JPA_SHOW_SQL: false
+      SPRING_JPA_DATABASE_PLATFORM: org.hibernate.dialect.MySQL8Dialect
+      
+      # 서버 설정
+      SERVER_PORT: 8080
+      SERVER_SERVLET_CONTEXT_PATH: /api
+      
+      # JWT 보안 키 (환경변수로 설정 권장)
+      JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key-for-production-change-this}
+      
+      # AWS 설정
+      AWS_REGION: ap-northeast-2
+      AWS_S3_BUCKET: ${S3_BUCKET:-fintech-prod-bucket}
+      
+      # 로깅 설정
+      LOGGING_LEVEL_ROOT: WARN
+      LOGGING_LEVEL_COM_FINTECH_SERVER: INFO
+      
+    networks:
+      - fintech-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Nginx 리버스 프록시 (프로덕션)
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    container_name: fintech-nginx-prod
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      app:
+        condition: service_healthy
+    networks:
+      - fintech-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+# 네트워크 정의
+networks:
+  fintech-network:
+    driver: bridge
+
+# 볼륨 정의 (로컬 로그 저장용)
+volumes:
+  app_logs:
+    driver: local
+  nginx_logs:
+    driver: local

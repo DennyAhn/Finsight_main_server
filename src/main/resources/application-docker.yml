@@ -1,0 +1,66 @@
+# ===================================================================
+# DOCKER PROFILE SETTINGS (로컬 개발용)
+# ===================================================================
+spring:
+  # --- 1. Database Connection (Docker Compose MySQL) ---
+  datasource:
+    # Docker Compose의 MySQL 서비스에 연결
+    url: jdbc:mysql://mysql:3306/findb?useSSL=false&serverTimezone=UTC&characterEncoding=UTF-8
+    username: root
+    password: Aa5051140
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    
+    # 커넥션 풀 설정 (개발 환경)
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 20000
+      idle-timeout: 300000
+      max-lifetime: 1200000
+
+  # --- 2. JPA (Java Persistence API) Settings ---
+  jpa:
+    hibernate:
+      # Docker 환경에서는 validate 사용 (테이블이 이미 존재한다고 가정)
+      ddl-auto: validate
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        jdbc:
+          batch_size: 10
+    database-platform: org.hibernate.dialect.MySQL8Dialect
+
+  # --- 3. 서버 설정 ---
+  servlet:
+    context-path: /api
+
+# --- 4. 로깅 설정 (개발 환경) ---
+logging:
+  level:
+    root: INFO
+    com.fintech.server: DEBUG
+    org.springframework.security: INFO
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+
+# --- 5. Actuator 설정 ---
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+
+# --- 6. CORS 설정 (개발 환경) ---
+security:
+  cors:
+    allowed-origins: 
+      - http://localhost:3000
+      - http://localhost:3001
+      - https://finsight-c-7rus.vercel.app
+    allowed-methods: GET,POST,PUT,DELETE,OPTIONS,PATCH
+    allowed-headers: "*"
+    allow-credentials: true

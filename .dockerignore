@@ -1,0 +1,68 @@
+# ===================================================================
+# .dockerignore - Docker 빌드 시 제외할 파일들
+# ===================================================================
+
+# Git 관련
+.git
+.gitignore
+.gitattributes
+
+# IDE 관련
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+
+# OS 관련
+.DS_Store
+Thumbs.db
+
+# Build 관련
+build/
+target/
+out/
+bin/
+.gradle/
+gradle/
+
+# 로그 파일
+*.log
+logs/
+
+# 임시 파일
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# 테스트 관련
+src/test/
+
+# 문서
+*.md
+README.md
+API.md
+API_backup.md
+Update.md
+USER_FLOW.md
+
+# SQL 파일
+*.sql
+
+# 설정 파일 (민감한 정보 포함)
+.env
+.env.local
+.env.production
+
+# Docker 관련
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# 기타
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

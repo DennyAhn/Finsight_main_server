@@ -1,0 +1,99 @@
+# ===================================================================
+# Docker Compose for Local Development
+# ===================================================================
+
+version: '3.8'
+
+services:
+  # MySQL 데이터베이스
+  mysql:
+    image: mysql:8.0
+    container_name: fintech-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: Aa5051140
+      MYSQL_DATABASE: findb
+      MYSQL_USER: fintech_user
+      MYSQL_PASSWORD: fintech_password
+    ports:
+      - "3307:3306"  # 로컬 포트 3307로 매핑
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro  # 초기 데이터베이스 설정
+    networks:
+      - fintech-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+  # Spring Boot 애플리케이션
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fintech-app
+    restart: unless-stopped
+    expose:
+      - "8080"  # Nginx를 통해서만 접근 가능하도록 변경
+    environment:
+      # 데이터베이스 연결 설정
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/findb?useSSL=false&serverTimezone=UTC&characterEncoding=UTF-8
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: Aa5051140
+      SPRING_DATASOURCE_DRIVER_CLASS_NAME: com.mysql.cj.jdbc.Driver
+      
+      # JPA 설정
+      SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+      SPRING_JPA_SHOW_SQL: true
+      SPRING_JPA_DATABASE_PLATFORM: org.hibernate.dialect.MySQL8Dialect
+      
+      # 프로파일 설정
+      SPRING_PROFILES_ACTIVE: local
+      
+      # 서버 설정
+      SERVER_PORT: 8080
+      SERVER_SERVLET_CONTEXT_PATH: /api
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - fintech-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # Nginx 리버스 프록시
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    container_name: fintech-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"    # HTTP 포트
+      - "443:443"  # HTTPS 포트 (SSL 인증서 필요시)
+    depends_on:
+      app:
+        condition: service_healthy
+    networks:
+      - fintech-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+# 볼륨 정의
+volumes:
+  mysql_data:
+    driver: local
+
+# 네트워크 정의
+networks:
+  fintech-network:
+    driver: bridge
