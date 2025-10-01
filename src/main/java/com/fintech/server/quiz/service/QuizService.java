@@ -142,6 +142,17 @@ public class QuizService {
                                 .hintMd(question.getHintMd())                           // 힌트 정보 추가
                                 .teachingExplainerMd(question.getTeachingExplainerMd()) // 학습 패널 추가
                                 .solvingKeypointsMd(question.getSolvingKeypointsMd())   // 핵심 포인트 추가
+                                .type(question.getType() != null ? question.getType().name() : null)  // 문제 타입 추가
+                                .article(question.getType() != null && 
+                                         question.getType() == com.fintech.server.quiz.entity.Question.QuestionType.ARTICLE && 
+                                         question.getArticle() != null ? 
+                                        QuizResponseDto.ArticleDto.builder()
+                                                .id(question.getArticle().getId())
+                                                .title(question.getArticle().getTitle())
+                                                .bodyMd(question.getArticle().getBodyMd())
+                                                .imageUrl(question.getArticle().getImageUrl())
+                                                .sourceNote(question.getArticle().getSourceNote())
+                                                .build() : null)                        // 가상기사 정보 추가 (type이 ARTICLE인 경우만)
                                 .options(question.getOptions() != null ? question.getOptions().stream()
                                         .sorted((o1, o2) -> o1.getId().compareTo(o2.getId())) // ID 기준 오름차순 정렬
                                         .map(option ->

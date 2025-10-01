@@ -22,7 +22,20 @@ public class QuizResponseDto {
         private String hintMd;                    // 힌트 정보
         private String teachingExplainerMd;       // 학습 패널 (초록색 박스)
         private String solvingKeypointsMd;        // 핵심 포인트 (노란색 박스)
+        private String type;                      // 문제 타입 (CONCEPT, STORY, ARTICLE)
         private List<OptionDto> options;
+        private ArticleDto article;               // 가상기사 정보 (type이 ARTICLE인 경우만)
+    }
+
+    // Article 정보를 담는 내부 DTO
+    @Getter
+    @Builder
+    public static class ArticleDto {
+        private Long id;
+        private String title;
+        private String bodyMd;
+        private String imageUrl;
+        private String sourceNote;
     }
 
     // Option 정보를 담는 내부 DTO
