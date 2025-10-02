@@ -73,3 +73,8 @@ Desktop.ini
 application-local.yml
 application-prod.yml
 *.log
+
+# Environment variables (보안 정보 포함)
+.env
+.env.local
+.env.prod

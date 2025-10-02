@@ -7,9 +7,10 @@ version: '3.8'
 services:
   # Spring Boot 애플리케이션 (프로덕션)
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: dennyahn/fintech-server:latest  # Docker Hub 이미지
+    # build:  # 로컬 빌드 대신 Docker Hub 이미지 사용
+    #   context: .
+    #   dockerfile: Dockerfile
     container_name: fintech-app-prod
     restart: unless-stopped
     expose:
@@ -18,10 +19,10 @@ services:
       # 프로덕션 프로파일 활성화
       SPRING_PROFILES_ACTIVE: prod
       
-      # AWS RDS 연결 정보
-      SPRING_DATASOURCE_URL: jdbc:mysql://finquiz-db.c7gqm40cytz9.ap-northeast-2.rds.amazonaws.com:3306/findb?useSSL=true&serverTimezone=UTC&characterEncoding=UTF-8&allowPublicKeyRetrieval=true
-      SPRING_DATASOURCE_USERNAME: admin
-      SPRING_DATASOURCE_PASSWORD: Aa5051140!!
+      # AWS RDS 연결 정보 (환경변수 사용 - 보안)
+      SPRING_DATASOURCE_URL: jdbc:mysql://${DB_HOST}:${DB_PORT:-3306}/${DB_NAME}?useSSL=true&serverTimezone=UTC&characterEncoding=UTF-8&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: ${DB_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
       SPRING_DATASOURCE_DRIVER_CLASS_NAME: com.mysql.cj.jdbc.Driver
       
       # JPA 설정
@@ -33,12 +34,12 @@ services:
       SERVER_PORT: 8080
       SERVER_SERVLET_CONTEXT_PATH: /api
       
-      # JWT 보안 키 (환경변수로 설정 권장)
-      JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key-for-production-change-this}
+      # JWT 보안 키 (환경변수 사용 - 필수)
+      JWT_SECRET: ${JWT_SECRET}
       
       # AWS 설정
-      AWS_REGION: ap-northeast-2
-      AWS_S3_BUCKET: ${S3_BUCKET:-fintech-prod-bucket}
+      AWS_REGION: ${AWS_REGION:-ap-northeast-2}
+      AWS_S3_BUCKET: ${S3_BUCKET}
       
       # 로깅 설정
       LOGGING_LEVEL_ROOT: WARN
