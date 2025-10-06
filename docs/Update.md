@@ -163,3 +163,130 @@ CREATE TABLE post_tag_links (
 **업데이트 일시**: 2024년 1월 (커뮤니티 기능 최초 구현)
 **담당자**: 개발팀
 **관련 이슈**: 커뮤니티 기능 구현 요청
+
+---
+
+# EC2 SSH 접속 문제 해결
+
+## 문제 상황
+HTTPS 설정을 위해 EC2 서버에 SSH로 접속을 시도했으나, 지속적으로 권한 거부 오류가 발생했습니다.
+
+```bash
+ssh -i ~/finquiz-key.pem ubuntu@54.180.103.186
+# Permission denied (publickey,gssapi-keyex,gssapi-with-mic)
+```
+
+---
+
+## 🔍 문제 원인
+
+### 잘못된 사용자 이름 사용
+- **시도한 사용자**: `ubuntu`
+- **실제 AMI**: Amazon Linux 2023 (`al2023-ami-2023.8.20250915.0`)
+- **올바른 사용자**: **`ec2-user`**
+
+### 각 AMI별 기본 사용자 이름
+
+| AMI 종류 | 기본 사용자 이름 |
+|----------|------------------|
+| **Amazon Linux 2023** | `ec2-user` ✅ |
+| Ubuntu | `ubuntu` |
+| Debian | `admin` 또는 `debian` |
+| RHEL | `ec2-user` 또는 `root` |
+| SUSE | `ec2-user` 또는 `root` |
+
+---
+
+## ✅ 해결 방법
+
+### 올바른 SSH 명령어
+
+**WSL (Linux 환경):**
+```bash
+ssh -i ~/finquiz-key.pem ec2-user@54.180.103.186
+```
+
+**PowerShell (Windows 환경):**
+```powershell
+ssh -i "C:\Users\ahj20\Desktop\K_Hackathon\finquiz-key.pem" ec2-user@54.180.103.186
+```
+
+---
+
+## 📝 디버깅 과정
+
+### 1. 네트워크 연결 확인
+```bash
+ssh -vvv -i ~/finquiz-key.pem ubuntu@54.180.103.186
+```
+- **결과**: ✅ EC2 서버까지 연결 성공
+- **판단**: 네트워크 및 보안 그룹 설정은 정상
+
+### 2. 키 파일 권한 확인
+```bash
+ls -la ~/finquiz-key.pem
+# -r-------- 1 root root 1678 Oct 5 15:23 /root/finquiz-key.pem
+```
+- **결과**: ✅ 권한 400, 정상
+- **판단**: 키 파일 권한 문제 아님
+
+### 3. SSH 상세 로그 분석
+```
+debug1: Trying private key: /root/finquiz-key.pem
+debug3: sign_and_send_pubkey: using publickey with RSA SHA256:DAnFGGmwn3vTEpttxv/lRsfIhWXhlKqUjlIETNxeIeM
+debug1: Authentications that can continue: publickey,gssapi-keyex,gssapi-with-mic
+debug1: No more authentication methods to try.
+```
+- **결과**: 키는 전송되었지만 서버가 거부
+- **판단**: 키 자체는 맞지만, **사용자 이름이 잘못됨**
+
+### 4. EC2 인스턴스 정보 확인
+- **AMI ID**: `ami-077ad873396d76f6a`
+- **AMI 이름**: `al2023-ami-2023.8.20250915.0-kernel-6.1-x86_64`
+- **판단**: **Amazon Linux 2023** → 기본 사용자는 `ec2-user`
+
+### 5. 최종 해결
+```bash
+ssh -i ~/finquiz-key.pem ec2-user@54.180.103.186
+```
+- **결과**: ✅ 접속 성공!
+
+---
+
+## 💡 교훈
+
+### 1. AMI 유형 확인의 중요성
+EC2 인스턴스에 SSH 접속 시, **AMI 유형**을 먼저 확인해야 합니다.
+- AWS 콘솔 → EC2 → 인스턴스 → **세부 정보** 탭 → **AMI 이름** 확인
+
+### 2. 일반적인 실수
+- Ubuntu를 사용한다고 가정하고 `ubuntu` 사용자로 접속 시도
+- 실제로는 Amazon Linux 2023을 사용하고 있었음
+- 키 파일이나 보안 그룹 문제로 착각하기 쉬움
+
+### 3. 빠른 확인 방법
+**SSH 접속 시 `-v` 옵션 사용:**
+```bash
+ssh -v -i keyfile.pem username@ip-address
+```
+이렇게 하면 어느 단계에서 실패하는지 정확히 알 수 있습니다.
+
+---
+
+## 🔧 향후 대응
+
+### EC2 Instance Connect 활용
+키 파일 문제나 사용자 이름을 모를 때는 **EC2 Instance Connect**를 사용하면 편리합니다:
+
+1. AWS 콘솔 → EC2 → 인스턴스 선택
+2. **연결** 버튼 클릭
+3. **EC2 Instance Connect** 탭 선택
+4. **연결** 클릭
+
+AWS가 자동으로 올바른 사용자 이름과 임시 키를 생성하여 접속시켜줍니다.
+
+---
+
+**해결 일시**: 2025년 10월 5일
+**문제**: SSH 접속 권한 거부 (잘못된 사용자 이름)
+**해결**: `ubuntu` → `ec2-user`로 변경

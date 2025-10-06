@@ -24,7 +24,7 @@ target/
 out/
 bin/
 .gradle/
-gradle/
+# gradle/ ← 이것은 필요함 (Gradle Wrapper)
 
 # 로그 파일
 *.log
