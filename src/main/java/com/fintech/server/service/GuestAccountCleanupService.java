@@ -7,6 +7,7 @@ import com.fintech.server.quiz.repository.UserAnswerRepository;
 import com.fintech.server.quiz.repository.UserDailyActivityRepository;
 import com.fintech.server.quiz.repository.UserProgressRepository;
 import com.fintech.server.quiz.repository.UserWrongNoteRepository;
+import com.fintech.server.community.repository.CommunityPostRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -27,6 +28,7 @@ public class GuestAccountCleanupService {
     private final UserDailyActivityRepository userDailyActivityRepository;
     private final UserWrongNoteRepository userWrongNoteRepository;
     private final UserProgressRepository userProgressRepository;
+    private final CommunityPostRepository communityPostRepository;
 
     /**
      * 만료된 게스트 계정 정리 (매 시간마다 실행)
@@ -55,6 +57,7 @@ public class GuestAccountCleanupService {
                 userDailyActivityRepository.deleteByIdUserId(userId);
                 userProgressRepository.deleteByUserId(userId);
                 userWrongNoteRepository.deleteByUserId(userId);
+                communityPostRepository.deleteByAuthorId(userId); // 커뮤니티 게시글 삭제 추가
                 
                 // 계정 삭제
                 accountRepository.delete(account);
@@ -89,6 +92,7 @@ public class GuestAccountCleanupService {
             userDailyActivityRepository.deleteByIdUserId(userId);
             userProgressRepository.deleteByUserId(userId);
             userWrongNoteRepository.deleteByUserId(userId);
+            communityPostRepository.deleteByAuthorId(userId); // 커뮤니티 게시글 삭제 추가
             
             // 계정 및 사용자 삭제
             accountRepository.delete(account);
