@@ -31,9 +31,9 @@ public class GuestAccountCleanupService {
     private final CommunityPostRepository communityPostRepository;
 
     /**
-     * 만료된 게스트 계정 정리 (매 시간마다 실행)
+     * 만료된 게스트 계정 정리 (매 24시간마다 실행)
      */
-    @Scheduled(fixedRate = 3600000) // 1시간 = 3600000ms
+    @Scheduled(fixedRate = 86400000) // 24시간 = 86400000ms
     @Transactional
     public void cleanupExpiredGuestAccounts() {
         try {

@@ -25,10 +25,10 @@ public class GuestBadgeCleanupService {
     private final UserBadgeRepository userBadgeRepository;
 
     /**
-     * 매 1시간마다 실행되는 스케줄러
+     * 매 24시간마다 실행되는 스케줄러
      * 만료된 게스트 사용자의 벳지 데이터를 정리합니다.
      */
-    @Scheduled(fixedRate = 3600000) // 1시간 = 3600000ms
+    @Scheduled(fixedRate = 86400000) // 24시간 = 86400000ms
     @Transactional
     public void cleanupExpiredGuestBadges() {
         try {
