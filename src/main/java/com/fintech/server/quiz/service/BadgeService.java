@@ -6,6 +6,7 @@ import com.fintech.server.quiz.entity.UserBadge;
 import com.fintech.server.quiz.repository.BadgeRepository;
 import com.fintech.server.quiz.repository.UserBadgeRepository;
 import com.fintech.server.quiz.repository.UserAnswerRepository;
+import com.fintech.server.quiz.repository.UserProgressRepository;
 import com.fintech.server.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,6 +24,7 @@ public class BadgeService {
     private final BadgeRepository badgeRepository;
     private final UserBadgeRepository userBadgeRepository;
     private final UserAnswerRepository userAnswerRepository;
+    private final UserProgressRepository userProgressRepository;
     private final UserRepository userRepository;
 
     /**
@@ -123,13 +125,10 @@ public class BadgeService {
     }
 
     /**
-     * 완료된 퀴즈 수 계산
+     * 완료된 퀴즈 수 계산 (UserProgress 테이블 기준)
      */
     private int calculateCompletedQuizzes(Long userId) {
-        return (int) userAnswerRepository.findByUserId(userId).stream()
-                .map(answer -> answer.getQuestion().getQuiz().getId())
-                .distinct()
-                .count();
+        return userProgressRepository.findByUser_Id(userId).size();
     }
 
     /**

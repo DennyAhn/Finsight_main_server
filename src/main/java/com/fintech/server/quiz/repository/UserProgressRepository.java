@@ -10,6 +10,9 @@ public interface UserProgressRepository extends JpaRepository<UserProgress, Long
     // 특정 사용자의 특정 퀴즈 목록에 대한 진행 상황을 조회합니다.
     List<UserProgress> findByUserIdAndQuizIdIn(Long userId, Set<Long> quizIds);
     
+    // 특정 사용자의 모든 진행 기록 조회
+    List<UserProgress> findByUser_Id(Long userId);
+    
     // 특정 사용자의 진행 기록 삭제
     void deleteByUserId(Long userId);
 }

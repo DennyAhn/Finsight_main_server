@@ -4,12 +4,15 @@ import com.fintech.server.quiz.dto.AnswerRequestDto;
 import com.fintech.server.quiz.dto.AnswerResponseDto;
 import com.fintech.server.entity.User;
 import com.fintech.server.quiz.dto.QuizResponseDto;
+import com.fintech.server.quiz.dto.QuizCompleteResponse;
 import com.fintech.server.quiz.entity.QuestionOption;
 import com.fintech.server.quiz.entity.Quiz;
 import com.fintech.server.quiz.entity.UserAnswer;
+import com.fintech.server.quiz.entity.UserProgress;
 import com.fintech.server.quiz.repository.QuestionOptionRepository;
 import com.fintech.server.quiz.repository.QuizRepository;
 import com.fintech.server.quiz.repository.UserAnswerRepository;
+import com.fintech.server.quiz.repository.UserProgressRepository;
 import com.fintech.server.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,7 +21,9 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.Collections;
+import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
@@ -30,6 +35,7 @@ public class QuizService {
     private final QuizRepository quizRepository;
     private final QuestionOptionRepository questionOptionRepository;
     private final UserAnswerRepository userAnswerRepository;
+    private final UserProgressRepository userProgressRepository;
     private final UserRepository userRepository; // 임시로 사용자 정보를 가져오기 위해 추가
     private final WrongNoteService wrongNoteService; // 오답 노트 서비스 추가
     private final BadgeService badgeService; // 배지 서비스 추가
@@ -128,6 +134,65 @@ public class QuizService {
         // 기본값으로 1L 사용 (테스트 목적)
         log.warn("사용자 ID를 찾을 수 없어 기본값(1) 사용");
         return 1L;
+    }
+
+    /**
+     * 퀴즈 완료 처리 메소드
+     */
+    @Transactional
+    public QuizCompleteResponse completeQuiz(Long quizId, Long userId) {
+        // 1. 사용자와 퀴즈 조회
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
+        
+        Quiz quiz = quizRepository.findById(quizId)
+                .orElseThrow(() -> new RuntimeException("Quiz not found with id: " + quizId));
+
+        // 2. 사용자의 모든 답변 조회
+        List<UserAnswer> userAnswers = userAnswerRepository.findByUserIdAndQuizId(userId, quizId);
+        
+        if (userAnswers.isEmpty()) {
+            throw new IllegalArgumentException("No answers found for this quiz. Please complete the quiz first.");
+        }
+
+        // 3. 점수 계산
+        int correctAnswers = (int) userAnswers.stream()
+                .filter(UserAnswer::isCorrect)
+                .count();
+        int totalQuestions = userAnswers.size();
+        boolean passed = correctAnswers >= (totalQuestions * 0.6); // 60% 이상
+        
+        // 4. UserProgress 저장 (퀴즈 완료 기록)
+        UserProgress userProgress = new UserProgress();
+        userProgress.setUser(user);
+        userProgress.setQuiz(quiz);
+        userProgress.setScore(correctAnswers); // 정답 수 = 점수 (required_quizzes와 동일)
+        userProgress.setPassed(passed);
+        userProgress.setStartedAt(LocalDateTime.now().minusMinutes(5)); // 대략적 시작 시간
+        userProgress.setFinishedAt(LocalDateTime.now());
+        userProgress.setTeachingViews(0); // 기본값
+        userProgressRepository.save(userProgress);
+        
+        // 5. 배지 업데이트 (이미 구현됨)
+        try {
+            badgeService.updateUserBadgeProgress(userId);
+            log.info("배지 진행 상황 업데이트 완료: userId={}", userId);
+        } catch (Exception e) {
+            log.error("배지 업그레이드 확인 중 오류 발생", e);
+        }
+
+        // 6. 응답 생성
+        String message = passed ? 
+            String.format("축하합니다! %d문제 중 %d문제를 맞혔습니다.", totalQuestions, correctAnswers) :
+            String.format("아쉽습니다. %d문제 중 %d문제를 맞혔습니다. 다시 도전해보세요!", totalQuestions, correctAnswers);
+
+        return QuizCompleteResponse.builder()
+            .totalQuestions(totalQuestions)
+            .correctAnswers(correctAnswers)
+            .passed(passed)
+            .score(correctAnswers) // required_quizzes와 동일한 값
+            .message(message)
+            .build();
     }
 
     private QuizResponseDto convertToDto(Quiz quiz) {
