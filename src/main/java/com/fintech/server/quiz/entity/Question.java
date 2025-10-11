@@ -105,9 +105,9 @@ public class Question {
     @OneToMany(mappedBy = "question", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<QuestionOption> options;
     
-    // 가상기사 퀴즈를 위한 Article 관계
+    // 가상기사 퀴즈를 위한 Article 관계 (article_id → articles.article_code)
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "article_id", insertable = false, updatable = false)
+    @JoinColumn(name = "article_id", referencedColumnName = "article_code", insertable = false, updatable = false)
     private Article article;
 
     @PrePersist
