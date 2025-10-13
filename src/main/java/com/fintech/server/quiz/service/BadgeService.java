@@ -1,6 +1,9 @@
 package com.fintech.server.quiz.service;
 
 import com.fintech.server.entity.User;
+import com.fintech.server.quiz.dto.BadgeResponseDto;
+import com.fintech.server.quiz.dto.UserBadgeResponseDto;
+import com.fintech.server.quiz.dto.UserBadgeSummaryDto;
 import com.fintech.server.quiz.entity.Badge;
 import com.fintech.server.quiz.entity.UserBadge;
 import com.fintech.server.quiz.repository.BadgeRepository;
@@ -15,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -72,6 +76,8 @@ public class BadgeService {
             userBadge.setIsAchieved(isAchieved);
             if (isAchieved && !userBadge.getIsAchieved()) {
                 userBadge.setEarnedAt(java.time.LocalDateTime.now());
+                userBadge.setAwardedAt(java.time.LocalDateTime.now());
+                userBadge.setSource("quiz_completion"); // 기본 소스 설정
                 log.info("User {} earned badge: {}", userId, badge.getName());
             }
             userBadgeRepository.save(userBadge);
@@ -83,6 +89,8 @@ public class BadgeService {
             newUserBadge.setIsAchieved(isAchieved);
             if (isAchieved) {
                 newUserBadge.setEarnedAt(java.time.LocalDateTime.now());
+                newUserBadge.setAwardedAt(java.time.LocalDateTime.now());
+                newUserBadge.setSource("quiz_completion"); // 기본 소스 설정
                 log.info("User {} earned badge: {}", userId, badge.getName());
             }
             userBadgeRepository.save(newUserBadge);
@@ -234,5 +242,78 @@ public class BadgeService {
             userRepository.save(user);
             log.info("User {} displayedBadge updated to: {}", userId, newBadge != null ? newBadge.getName() : "null");
         }
+    }
+
+    // ========== 새로운 API 메서드들 ==========
+
+    /**
+     * 사용자 뱃지 요약 정보 조회
+     */
+    public UserBadgeSummaryDto getUserBadgeSummary(Long userId) {
+        // 뱃지 데이터 초기화 (개발용)
+        initializeBadges();
+        
+        // 사용자의 뱃지 진행 상황 업데이트
+        updateUserBadgeProgress(userId);
+        
+        // 현재 뱃지
+        Badge currentBadge = getCurrentBadgeLevel(userId);
+        BadgeResponseDto currentBadgeResponse = BadgeResponseDto.from(currentBadge);
+        
+        // 다음 뱃지
+        Badge nextBadge = getNextBadgeLevel(userId);
+        BadgeResponseDto nextBadgeResponse = BadgeResponseDto.from(nextBadge);
+        
+        // 모든 뱃지 목록
+        List<UserBadge> allUserBadges = getUserBadges(userId);
+        List<UserBadgeResponseDto> allBadgeResponses = allUserBadges.stream()
+                .map(UserBadgeResponseDto::from)
+                .collect(Collectors.toList());
+        
+        // 획득한 뱃지 목록
+        List<UserBadge> achievedBadges = getAchievedBadges(userId);
+        List<UserBadgeResponseDto> achievedBadgeResponses = achievedBadges.stream()
+                .map(UserBadgeResponseDto::from)
+                .collect(Collectors.toList());
+        
+        return UserBadgeSummaryDto.of(currentBadgeResponse, nextBadgeResponse, allBadgeResponses, achievedBadgeResponses);
+    }
+
+    /**
+     * 사용자 현재 뱃지 조회 (ResponseDto)
+     */
+    public BadgeResponseDto getCurrentBadgeResponse(Long userId) {
+        Badge currentBadge = getCurrentBadgeLevel(userId);
+        return BadgeResponseDto.from(currentBadge);
+    }
+
+    /**
+     * 사용자 획득한 뱃지 목록 조회 (ResponseDto)
+     */
+    public List<UserBadgeResponseDto> getAchievedBadgeResponses(Long userId) {
+        List<UserBadge> achievedBadges = getAchievedBadges(userId);
+        return achievedBadges.stream()
+                .map(UserBadgeResponseDto::from)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 사용자 모든 뱃지 목록 조회 (ResponseDto)
+     */
+    public List<UserBadgeResponseDto> getAllUserBadgeResponses(Long userId) {
+        List<UserBadge> allUserBadges = getUserBadges(userId);
+        return allUserBadges.stream()
+                .map(UserBadgeResponseDto::from)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 모든 뱃지 목록 조회 (ResponseDto)
+     */
+    public List<BadgeResponseDto> getAllBadgeResponses() {
+        List<Badge> allBadges = badgeRepository.findAllByOrderByLevelNumberAsc();
+        return allBadges.stream()
+                .map(BadgeResponseDto::from)
+                .collect(Collectors.toList());
     }
 }

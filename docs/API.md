@@ -1325,14 +1325,14 @@ POST /api/badges/init
 
 #### 초기화되는 배지
 
-| 레벨 | 이름 | 필요 퀴즈 | 필요 정답 |
-|------|------|----------|----------|
-| 1 | Bronze | 5 | 10 |
-| 2 | Silver | 10 | 30 |
-| 3 | Gold | 20 | 60 |
-| 4 | Platinum | 35 | 100 |
-| 5 | Diamond | 50 | 150 |
-| 6 | Master | 75 | 250 |
+| 레벨 | 이름 | 코드 | 필요 퀴즈 | 필요 정답 | 아이콘 URL |
+|------|------|------|----------|----------|------------|
+| 1 | 브론즈 | BRONZE | 3 | 5 | https://s3.ap-northeast-2.amazonaws.com/fin.img99/badges/bronze.png |
+| 2 | 실버 | SILVER | 6 | 10 | https://s3.ap-northeast-2.amazonaws.com/fin.img99/badges/silver.png |
+| 3 | 골드 | GOLD | 10 | 20 | https://s3.ap-northeast-2.amazonaws.com/fin.img99/badges/gold.png |
+| 4 | 플레티넘 | PLATINUM | 15 | 30 | https://s3.ap-northeast-2.amazonaws.com/fin.img99/badges/emerald.png |
+| 5 | 다이아 | DIAMOND | 25 | 50 | https://s3.ap-northeast-2.amazonaws.com/fin.img99/badges/diamond.png |
+| 6 | 마스터 | MASTER | 50 | 100 | https://s3.ap-northeast-2.amazonaws.com/fin.img99/badges/master.png |
 
 ---
 
@@ -1360,6 +1360,399 @@ POST /api/badges/update/{userId}
 
 - 새로운 배지 획득 조건이 충족되면 자동으로 배지 부여
 - user_badges 테이블에 진행도 업데이트
+
+---
+
+### 9.3. 사용자 뱃지 요약 정보 조회
+
+사용자의 현재 뱃지, 다음 뱃지, 모든 뱃지 목록을 포함한 종합 정보를 조회합니다.
+
+```http
+GET /api/badges/user/{userId}/summary
+```
+
+#### Path Parameters
+
+| 파라미터 | 타입 | 설명 |
+|---------|------|------|
+| userId | Long | 사용자 ID |
+
+#### Response (200 OK)
+
+```json
+{
+  "currentBadge": {
+    "id": 1,
+    "code": "BRONZE",
+    "name": "브론즈",
+    "description": "첫 번째 벳지 - 3개 퀴즈 완료",
+    "iconUrl": "https://s3.ap-northeast-2.amazonaws.com/fin.img99/badges/bronze.png",
+    "levelNumber": 1,
+    "requiredQuizzes": 3,
+    "requiredCorrectAnswers": 5,
+    "color": "#CD7F32",
+    "createdAt": "2025-10-02T05:25:21",
+    "updatedAt": "2025-10-02T05:25:21"
+  },
+  "nextBadge": {
+    "id": 3,
+    "code": "GOLD",
+    "name": "골드",
+    "description": "세 번째 벳지입니다. 12개의 퀴즈를 완료하고 25개의 문제를 맞춰보세요!",
+    "iconUrl": "/icons/gold.png",
+    "levelNumber": 3,
+    "requiredQuizzes": 12,
+    "requiredCorrectAnswers": 25,
+    "color": "#FFD700",
+    "createdAt": "2024-01-08T10:00:00",
+    "updatedAt": "2024-01-08T10:00:00"
+  },
+  "allBadges": [
+    {
+      "id": 1,
+      "badge": {
+        "id": 1,
+        "code": "BRONZE",
+        "name": "브론즈",
+        "description": "첫 번째 벳지입니다. 3개의 퀴즈를 완료하고 5개의 문제를 맞춰보세요!",
+        "iconUrl": "/icons/bronze.png",
+        "levelNumber": 1,
+        "requiredQuizzes": 3,
+        "requiredCorrectAnswers": 5,
+        "color": "#CD7F32",
+        "createdAt": "2024-01-08T10:00:00",
+        "updatedAt": "2024-01-08T10:00:00"
+      },
+      "progress": 100,
+      "isAchieved": true,
+      "earnedAt": "2024-01-08T11:00:00"
+    },
+    {
+      "id": 2,
+      "badge": {
+        "id": 2,
+        "code": "SILVER",
+        "name": "실버",
+        "description": "두 번째 벳지입니다. 3개의 문제를 맞춰보세요!",
+        "iconUrl": "/icons/silver.png",
+        "levelNumber": 2,
+        "requiredQuizzes": 3,
+        "requiredCorrectAnswers": 3,
+        "color": "#C0C0C0",
+        "createdAt": "2024-01-08T10:00:00",
+        "updatedAt": "2024-01-08T10:00:00"
+      },
+      "progress": 85,
+      "isAchieved": false,
+      "earnedAt": null
+    }
+  ],
+  "achievedBadges": [
+    {
+      "id": 1,
+      "badge": {
+        "id": 1,
+        "code": "BRONZE",
+        "name": "브론즈",
+        "description": "첫 번째 벳지입니다. 3개의 퀴즈를 완료하고 5개의 문제를 맞춰보세요!",
+        "iconUrl": "/icons/bronze.png",
+        "levelNumber": 1,
+        "requiredQuizzes": 3,
+        "requiredCorrectAnswers": 5,
+        "color": "#CD7F32",
+        "createdAt": "2024-01-08T10:00:00",
+        "updatedAt": "2024-01-08T10:00:00"
+      },
+      "progress": 100,
+      "isAchieved": true,
+      "earnedAt": "2024-01-08T11:00:00"
+    }
+  ],
+  "totalBadges": 6,
+  "achievedBadgesCount": 1,
+  "progressPercentage": 16
+}
+```
+
+---
+
+### 9.4. 사용자 현재 뱃지 조회
+
+사용자의 현재 획득한 최고 레벨 뱃지를 조회합니다.
+
+```http
+GET /api/badges/user/{userId}/current
+```
+
+#### Path Parameters
+
+| 파라미터 | 타입 | 설명 |
+|---------|------|------|
+| userId | Long | 사용자 ID |
+
+#### Response (200 OK)
+
+```json
+{
+  "id": 1,
+  "code": "BRONZE",
+  "name": "브론즈",
+  "description": "첫 번째 벳지 - 3개 퀴즈 완료",
+  "iconUrl": "https://s3.ap-northeast-2.amazonaws.com/fin.img99/badges/bronze.png",
+  "levelNumber": 1,
+  "requiredQuizzes": 3,
+  "requiredCorrectAnswers": 5,
+  "color": "#CD7F32",
+  "createdAt": "2025-10-02T05:25:21",
+  "updatedAt": "2025-10-02T05:25:21"
+}
+```
+
+---
+
+### 9.5. 사용자 획득한 뱃지 목록 조회
+
+사용자가 획득한 모든 뱃지 목록을 조회합니다.
+
+```http
+GET /api/badges/user/{userId}/achieved
+```
+
+#### Path Parameters
+
+| 파라미터 | 타입 | 설명 |
+|---------|------|------|
+| userId | Long | 사용자 ID |
+
+#### Response (200 OK)
+
+```json
+[
+  {
+    "id": 1,
+    "badge": {
+      "id": 1,
+      "code": "BRONZE",
+      "name": "브론즈",
+      "description": "첫 번째 벳지입니다. 3개의 퀴즈를 완료하고 5개의 문제를 맞춰보세요!",
+      "iconUrl": "/icons/bronze.png",
+      "levelNumber": 1,
+      "requiredQuizzes": 3,
+      "requiredCorrectAnswers": 5,
+      "color": "#CD7F32",
+      "createdAt": "2024-01-08T10:00:00",
+      "updatedAt": "2024-01-08T10:00:00"
+    },
+    "progress": 100,
+    "isAchieved": true,
+    "earnedAt": "2024-01-08T11:00:00"
+  }
+]
+```
+
+---
+
+### 9.6. 사용자 모든 뱃지 목록 조회
+
+사용자의 모든 뱃지 목록을 진행률과 함께 조회합니다.
+
+```http
+GET /api/badges/user/{userId}/all
+```
+
+#### Path Parameters
+
+| 파라미터 | 타입 | 설명 |
+|---------|------|------|
+| userId | Long | 사용자 ID |
+
+#### Response (200 OK)
+
+```json
+[
+  {
+    "id": 1058,
+    "badge": {
+      "id": 1,
+      "code": "BRONZE",
+      "name": "브론즈",
+      "description": "첫 번째 벳지 - 3개 퀴즈 완료",
+      "iconUrl": "https://s3.ap-northeast-2.amazonaws.com/fin.img99/badges/bronze.png",
+      "levelNumber": 1,
+      "requiredQuizzes": 3,
+      "requiredCorrectAnswers": 5,
+      "color": "#CD7F32",
+      "createdAt": "2025-10-02T05:25:21",
+      "updatedAt": "2025-10-02T05:25:21"
+    },
+    "progress": 0,
+    "isAchieved": false,
+    "earnedAt": "2025-10-13T20:33:10",
+    "awardedAt": null,
+    "source": null
+  },
+  {
+    "id": 1059,
+    "badge": {
+      "id": 2,
+      "code": "SILVER",
+      "name": "실버",
+      "description": "두 번째 벳지 - 6개 퀴즈 완료",
+      "iconUrl": "https://s3.ap-northeast-2.amazonaws.com/fin.img99/badges/silver.png",
+      "levelNumber": 2,
+      "requiredQuizzes": 6,
+      "requiredCorrectAnswers": 10,
+      "color": "#C0C0C0",
+      "createdAt": "2025-10-02T05:25:21",
+      "updatedAt": "2025-10-02T05:25:21"
+    },
+    "progress": 0,
+    "isAchieved": false,
+    "earnedAt": "2025-10-13T20:33:10",
+    "awardedAt": null,
+    "source": null
+  },
+  {
+    "id": 1060,
+    "badge": {
+      "id": 3,
+      "code": "GOLD",
+      "name": "골드",
+      "description": "세 번째 벳지 - 10개 퀴즈 완료",
+      "iconUrl": "https://s3.ap-northeast-2.amazonaws.com/fin.img99/badges/gold.png",
+      "levelNumber": 3,
+      "requiredQuizzes": 10,
+      "requiredCorrectAnswers": 20,
+      "color": "#FFD700",
+      "createdAt": "2025-10-02T05:25:21",
+      "updatedAt": "2025-10-02T05:25:21"
+    },
+    "progress": 0,
+    "isAchieved": false,
+    "earnedAt": "2025-10-13T20:33:11",
+    "awardedAt": null,
+    "source": null
+  }
+]
+```
+
+---
+
+### 9.7. 모든 뱃지 목록 조회
+
+시스템에 등록된 모든 뱃지 목록을 조회합니다.
+
+```http
+GET /api/badges
+```
+
+#### Response (200 OK)
+
+```json
+[
+  {
+    "id": 1,
+    "code": "BRONZE",
+    "name": "브론즈",
+    "description": "첫 번째 벳지 - 3개 퀴즈 완료",
+    "iconUrl": "https://s3.ap-northeast-2.amazonaws.com/fin.img99/badges/bronze.png",
+    "levelNumber": 1,
+    "requiredQuizzes": 3,
+    "requiredCorrectAnswers": 5,
+    "color": "#CD7F32",
+    "createdAt": "2025-10-02T05:25:21",
+    "updatedAt": "2025-10-02T05:25:21"
+  },
+  {
+    "id": 2,
+    "code": "SILVER",
+    "name": "실버",
+    "description": "두 번째 벳지 - 6개 퀴즈 완료",
+    "iconUrl": "https://s3.ap-northeast-2.amazonaws.com/fin.img99/badges/silver.png",
+    "levelNumber": 2,
+    "requiredQuizzes": 6,
+    "requiredCorrectAnswers": 10,
+    "color": "#C0C0C0",
+    "createdAt": "2025-10-02T05:25:21",
+    "updatedAt": "2025-10-02T05:25:21"
+  },
+  {
+    "id": 3,
+    "code": "GOLD",
+    "name": "골드",
+    "description": "세 번째 벳지 - 10개 퀴즈 완료",
+    "iconUrl": "https://s3.ap-northeast-2.amazonaws.com/fin.img99/badges/gold.png",
+    "levelNumber": 3,
+    "requiredQuizzes": 10,
+    "requiredCorrectAnswers": 20,
+    "color": "#FFD700",
+    "createdAt": "2025-10-02T05:25:21",
+    "updatedAt": "2025-10-02T05:25:21"
+  },
+  {
+    "id": 4,
+    "code": "PLATINUM",
+    "name": "플레티넘",
+    "description": "네 번째 벳지 - 15개 퀴즈 완료",
+    "iconUrl": "https://s3.ap-northeast-2.amazonaws.com/fin.img99/badges/emerald.png",
+    "levelNumber": 4,
+    "requiredQuizzes": 15,
+    "requiredCorrectAnswers": 30,
+    "color": "#E5E4E2",
+    "createdAt": "2025-10-02T05:25:21",
+    "updatedAt": "2025-10-02T05:25:21"
+  },
+  {
+    "id": 5,
+    "code": "DIAMOND",
+    "name": "다이아",
+    "description": "다섯 번째 벳지 - 25개 퀴즈 완료",
+    "iconUrl": "https://s3.ap-northeast-2.amazonaws.com/fin.img99/badges/diamond.png",
+    "levelNumber": 5,
+    "requiredQuizzes": 25,
+    "requiredCorrectAnswers": 50,
+    "color": "#B9F2FF",
+    "createdAt": "2025-10-02T05:25:21",
+    "updatedAt": "2025-10-02T05:25:21"
+  },
+  {
+    "id": 6,
+    "code": "MASTER",
+    "name": "마스터",
+    "description": "최고 벳지 - 50개 퀴즈 완료",
+    "iconUrl": "https://s3.ap-northeast-2.amazonaws.com/fin.img99/badges/master.png",
+    "levelNumber": 6,
+    "requiredQuizzes": 50,
+    "requiredCorrectAnswers": 100,
+    "color": "#800080",
+    "createdAt": "2025-10-02T05:25:21",
+    "updatedAt": "2025-10-02T05:25:21"
+  }
+]
+```
+
+---
+
+### 9.8. 뱃지 API 테스트 결과
+
+실제 테스트를 통해 확인된 뱃지 API 동작:
+
+#### ✅ 정상 작동하는 API들:
+- **뱃지 시스템 초기화**: `POST /api/badges/init` - 6개 뱃지 생성 완료
+- **모든 뱃지 목록 조회**: `GET /api/badges` - 6개 뱃지 반환
+- **사용자 현재 뱃지 조회**: `GET /api/badges/user/{userId}/current` - 브론즈 뱃지 반환
+- **사용자 모든 뱃지 목록 조회**: `GET /api/badges/user/{userId}/all` - 6개 뱃지의 진행상황 반환
+
+#### 📊 반환되는 데이터 구조:
+- **뱃지 정보**: ID, 코드, 이름, 설명, 아이콘 URL, 레벨, 요구사항, 색상
+- **사용자 뱃지 정보**: 진행률, 획득 여부, 획득/수여 시간, 소스
+- **아이콘 URL**: S3에 저장된 이미지 경로 (`https://s3.ap-northeast-2.amazonaws.com/fin.img99/badges/`)
+
+#### 🎯 프론트엔드 활용 방법:
+1. **뱃지 이미지 표시**: `iconUrl` 필드를 사용하여 이미지 로드
+2. **진행률 표시**: `progress`와 `isAchieved` 필드를 사용하여 진행률 바 구현
+3. **뱃지 색상**: `color` 필드를 사용하여 뱃지 테마 색상 적용
+4. **획득 상태**: `isAchieved` 필드로 획득/미획득 상태 구분
 
 ---
 

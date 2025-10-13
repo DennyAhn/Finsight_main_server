@@ -46,6 +46,15 @@ public class UserBadge {
     @Column(name = "is_achieved", nullable = false)
     private Boolean isAchieved = false; // 벳지 획득 여부
 
+    @Column(name = "awarded_at")
+    private java.time.LocalDateTime awardedAt; // 뱃지가 실제로 수여된 시간
+
+    @Column(name = "source")
+    private String source; // 뱃지 획득 소스 (예: "quiz_completion", "level_achievement")
+
+    @Column(name = "meta_json", columnDefinition = "TEXT")
+    private String metaJson; // 추가 메타데이터 (JSON 형태)
+
     @PrePersist
     protected void onCreate() {
         earnedAt = java.time.LocalDateTime.now();
