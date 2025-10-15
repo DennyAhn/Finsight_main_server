@@ -3,7 +3,9 @@ package com.fintech.server.quiz.controller;
 import com.fintech.server.quiz.dto.BadgeResponseDto;
 import com.fintech.server.quiz.dto.UserBadgeResponseDto;
 import com.fintech.server.quiz.dto.UserBadgeSummaryDto;
+import com.fintech.server.quiz.dto.LevelProgressDto;
 import com.fintech.server.quiz.service.BadgeService;
+import com.fintech.server.quiz.service.UserProgressService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -22,6 +24,7 @@ import java.util.List;
 public class BadgeController {
 
     private final BadgeService badgeService;
+    private final UserProgressService userProgressService;
 
     /**
      * 배지 시스템 초기화
@@ -148,6 +151,77 @@ public class BadgeController {
             log.error("Unexpected error getting all badges", e);
             return ResponseEntity.internalServerError()
                     .body("Internal server error: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 사용자 진행률 요약 조회
+     */
+    @GetMapping("/user/{userId}/progress/summary")
+    @Operation(summary = "사용자 진행률 요약", description = "사용자의 레벨별 완료한 퀴즈 수 요약을 조회합니다.")
+    public ResponseEntity<List<LevelProgressDto>> getUserProgressSummary(
+            @Parameter(description = "사용자 ID", required = true)
+            @PathVariable Long userId) {
+        
+        log.info("사용자 {}의 진행률 요약 조회 요청", userId);
+        
+        try {
+            // 전체 진행률을 가져와서 레벨별로 그룹화
+            List<com.fintech.server.quiz.dto.UserProgressDto> allProgress = userProgressService.getUserProgress(userId);
+            
+            // 레벨별로 그룹화하여 요약 생성
+            List<LevelProgressDto> summary = allProgress.stream()
+                    .collect(java.util.stream.Collectors.groupingBy(
+                            com.fintech.server.quiz.dto.UserProgressDto::getLevelId,
+                            java.util.stream.Collectors.toList()
+                    ))
+                    .entrySet().stream()
+                    .map(entry -> {
+                        Long levelId = entry.getKey();
+                        List<com.fintech.server.quiz.dto.UserProgressDto> levelProgress = entry.getValue();
+                        
+                        // 레벨 정보 가져오기
+                        com.fintech.server.quiz.dto.UserProgressDto firstProgress = levelProgress.get(0);
+                        
+                        // 통계 계산
+                        int completedQuizzes = (int) levelProgress.stream()
+                                .filter(p -> p.getFinishedAt() != null)
+                                .count();
+                        
+                        int passedQuizzes = (int) levelProgress.stream()
+                                .filter(p -> p.getPassed() != null && p.getPassed())
+                                .count();
+                        
+                        int failedQuizzes = completedQuizzes - passedQuizzes;
+                        
+                        return LevelProgressDto.builder()
+                                .levelId(levelId)
+                                .levelNumber(firstProgress.getLevelNumber())
+                                .levelTitle(firstProgress.getLevelTitle())
+                                .subsectorId(firstProgress.getSubsectorId())
+                                .subsectorName(firstProgress.getSubsectorName())
+                                .learningGoal("") // 학습 목표는 별도 조회 필요
+                                .status(LevelProgressDto.LevelStatus.IN_PROGRESS)
+                                .totalQuizzes(0) // 전체 퀴즈 수는 별도 조회 필요
+                                .completedQuizzes(completedQuizzes)
+                                .passedQuizzes(passedQuizzes)
+                                .failedQuizzes(failedQuizzes)
+                                .correctAnswers(passedQuizzes)
+                                .remainingToPass(Math.max(0, 0 - passedQuizzes))
+                                .completionRate(0.0) // 전체 퀴즈 수가 필요
+                                .passRate(completedQuizzes > 0 ? (double) passedQuizzes / completedQuizzes : 0.0)
+                                .levelPassed(passedQuizzes >= 0) // 전체 퀴즈 수가 필요
+                                .progressDetails(levelProgress)
+                                .build();
+                    })
+                    .sorted((a, b) -> Integer.compare(a.getLevelNumber(), b.getLevelNumber()))
+                    .collect(java.util.stream.Collectors.toList());
+            
+            log.info("사용자 {}의 진행률 요약 조회 완료: {}개 레벨", userId, summary.size());
+            return ResponseEntity.ok(summary);
+        } catch (Exception e) {
+            log.error("사용자 {}의 진행률 요약 조회 실패: {}", userId, e.getMessage(), e);
+            return ResponseEntity.internalServerError().build();
         }
     }
 }

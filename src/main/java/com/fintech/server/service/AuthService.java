@@ -60,7 +60,19 @@ public class AuthService {
      */
     private User createGuestUser() {
         User guestUser = new User();
-        guestUser.setNickname("익명의 사용자" + System.currentTimeMillis());
+        
+        // 동물 이름 배열
+        String[] animalNames = {
+            "호랑이", "사자", "코끼리", "기린", "팬더", "고양이", "강아지", "토끼", "다람쥐", "여우",
+            "늑대", "곰", "펭귄", "펠리컨", "독수리", "부엉이", "참새", "비둘기", "물고기", "고래",
+            "상어", "문어", "게", "새우", "벌", "나비", "거미", "개미", "잠자리", "메뚜기",
+            "뱀", "도마뱀", "거북이", "악어", "하마", "코뿔소", "얼룩말", "원숭이", "침팬지", "고릴라",
+            "캥거루", "코알라", "오리", "닭", "돼지", "소", "양", "염소", "말", "당나귀"
+        };
+        
+        // 랜덤하게 동물 이름 선택
+        String randomAnimal = animalNames[(int) (Math.random() * animalNames.length)];
+        guestUser.setNickname(randomAnimal);
         guestUser.setEmail("guest_" + UUID.randomUUID().toString() + "@example.com");
         guestUser.setCreatedAt(java.time.LocalDateTime.now());
         guestUser.setIsGuest(true); // 게스트 사용자로 설정

@@ -15,7 +15,7 @@
 | **Content-Type** | `application/json` |
 | **Character Encoding** | UTF-8 |
 | **인증 방식** | JWT Bearer Token (선택사항) |
-| **API 버전** | v1.2.1 |
+| **API 버전** | v1.3.0 |
 
 ### 인증 헤더
 
@@ -40,7 +40,8 @@ Authorization: Bearer {access_token}
 7. [관리자 API](#7--관리자-api) - 통계, 대시보드
 8. [커뮤니티 API](#8--커뮤니티-api) - 게시글 작성, 조회
 9. [배지 API](#9--배지-api) - 배지 초기화, 업데이트
-10. [헬스 체크 API](#10--헬스-체크-api) - 서버 상태 확인
+10. [사용자 진행률 API](#10--사용자-진행률-api) - 퀴즈 진행률, 징검다리
+11. [헬스 체크 API](#11--헬스-체크-api) - 서버 상태 확인
 
 ---
 
@@ -1960,7 +1961,270 @@ GET /api/wrong-notes?userId=65&page=0&size=20
 
 ---
 
+## 10. 📊 사용자 진행률 API
+
+사용자의 퀴즈 진행률과 징검다리 시스템을 관리하는 API입니다.
+
+### 10.1. 사용자 전체 진행률 조회
+
+**엔드포인트**: `GET /api/progress/user/{userId}`
+
+**설명**: 특정 사용자의 모든 퀴즈 진행률을 조회합니다.
+
+**경로 매개변수**:
+- `userId` (Long, 필수): 사용자 ID
+
+**응답 예시**:
+```json
+[
+  {
+    "id": 1,
+    "userId": 908,
+    "quizId": 1,
+    "quizTitle": "금융권 초급자 퀴즈",
+    "levelId": 1,
+    "levelNumber": 1,
+    "levelTitle": "기초 금융 상식",
+    "subsectorId": 1,
+    "subsectorName": "은행",
+    "startedAt": "2025-10-15T20:30:00",
+    "finishedAt": "2025-10-15T20:35:00",
+    "score": 4,
+    "passed": true,
+    "teachingViews": 0,
+    "createdAt": "2025-10-15T20:30:00"
+  }
+]
+```
+
+### 10.2. 레벨별 진행률 조회 (징검다리 포함)
+
+**엔드포인트**: `GET /api/progress/user/{userId}/level/{levelId}`
+
+**설명**: 특정 사용자의 특정 레벨 진행률을 징검다리 정보와 함께 조회합니다.
+
+**경로 매개변수**:
+- `userId` (Long, 필수): 사용자 ID
+- `levelId` (Long, 필수): 레벨 ID
+
+**응답 예시**:
+```json
+{
+  "levelId": 1,
+  "levelNumber": 1,
+  "levelTitle": "기초 금융 상식",
+  "subsectorId": 1,
+  "subsectorName": "은행",
+  "learningGoal": "금융 기초 지식 습득",
+  "status": "COMPLETED",
+  "totalQuizzes": 4,
+  "completedQuizzes": 4,
+  "passedQuizzes": 4,
+  "failedQuizzes": 0,
+  "correctAnswers": 4,
+  "remainingToPass": 0,
+  "completionRate": 1.0,
+  "passRate": 1.0,
+  "levelPassed": true,
+  "steps": [
+    {
+      "stepNumber": 1,
+      "stepTitle": "1단계",
+      "completedQuizzes": 4,
+      "totalQuizzes": 4,
+      "passedQuizzes": 4,
+      "failedQuizzes": 0,
+      "isCompleted": true,
+      "isPassed": true,
+      "passRate": 1.0,
+      "stepDescription": "기초 금융 상식"
+    }
+  ],
+  "isStepPassed": true,
+  "currentStep": 1,
+  "progressDetails": [
+    {
+      "id": 1,
+      "userId": 908,
+      "quizId": 1,
+      "quizTitle": "금융권 초급자 퀴즈",
+      "levelId": 1,
+      "levelNumber": 1,
+      "levelTitle": "기초 금융 상식",
+      "subsectorId": 1,
+      "subsectorName": "은행",
+      "startedAt": "2025-10-15T20:30:00",
+      "finishedAt": "2025-10-15T20:35:00",
+      "score": 4,
+      "passed": true,
+      "teachingViews": 0,
+      "createdAt": "2025-10-15T20:30:00"
+    }
+  ]
+}
+```
+
+### 10.3. 서브섹터별 진행률 조회
+
+**엔드포인트**: `GET /api/progress/user/{userId}/subsector/{subsectorId}`
+
+**설명**: 특정 사용자의 특정 서브섹터 진행률을 조회합니다.
+
+**경로 매개변수**:
+- `userId` (Long, 필수): 사용자 ID
+- `subsectorId` (Long, 필수): 서브섹터 ID
+
+**응답 예시**:
+```json
+{
+  "subsectorId": 1,
+  "subsectorName": "은행",
+  "totalLevels": 3,
+  "completedLevels": 1,
+  "totalQuizzes": 12,
+  "completedQuizzes": 4,
+  "passedQuizzes": 4,
+  "completionRate": 0.33,
+  "passRate": 1.0,
+  "levelProgress": [
+    {
+      "levelId": 1,
+      "levelNumber": 1,
+      "levelTitle": "기초 금융 상식",
+      "subsectorId": 1,
+      "subsectorName": "은행",
+      "learningGoal": "금융 기초 지식 습득",
+      "status": "COMPLETED",
+      "totalQuizzes": 4,
+      "completedQuizzes": 4,
+      "passedQuizzes": 4,
+      "failedQuizzes": 0,
+      "correctAnswers": 4,
+      "remainingToPass": 0,
+      "completionRate": 1.0,
+      "passRate": 1.0,
+      "levelPassed": true,
+      "steps": [
+        {
+          "stepNumber": 1,
+          "stepTitle": "1단계",
+          "completedQuizzes": 4,
+          "totalQuizzes": 4,
+          "passedQuizzes": 4,
+          "failedQuizzes": 0,
+          "isCompleted": true,
+          "isPassed": true,
+          "passRate": 1.0,
+          "stepDescription": "기초 금융 상식"
+        }
+      ],
+      "isStepPassed": true,
+      "currentStep": 1
+    }
+  ]
+}
+```
+
+### 10.4. 사용자 진행률 요약 조회
+
+**엔드포인트**: `GET /api/progress/user/{userId}/summary`
+
+**설명**: 사용자의 레벨별 완료한 퀴즈 수 요약을 조회합니다.
+
+**경로 매개변수**:
+- `userId` (Long, 필수): 사용자 ID
+
+**응답 예시**:
+```json
+[
+  {
+    "levelId": 1,
+    "levelNumber": 1,
+    "levelTitle": "기초 금융 상식",
+    "subsectorId": 1,
+    "subsectorName": "은행",
+    "learningGoal": "",
+    "status": "IN_PROGRESS",
+    "totalQuizzes": 0,
+    "completedQuizzes": 4,
+    "passedQuizzes": 4,
+    "failedQuizzes": 0,
+    "correctAnswers": 4,
+    "remainingToPass": -4,
+    "completionRate": 0.0,
+    "passRate": 1.0,
+    "levelPassed": true,
+    "progressDetails": [
+      {
+        "id": 1,
+        "userId": 908,
+        "quizId": 1,
+        "quizTitle": "금융권 초급자 퀴즈",
+        "levelId": 1,
+        "levelNumber": 1,
+        "levelTitle": "기초 금융 상식",
+        "subsectorId": 1,
+        "subsectorName": "은행",
+        "startedAt": "2025-10-15T20:30:00",
+        "finishedAt": "2025-10-15T20:35:00",
+        "score": 4,
+        "passed": true,
+        "teachingViews": 0,
+        "createdAt": "2025-10-15T20:30:00"
+      }
+    ]
+  }
+]
+```
+
+### 10.5. 징검다리 시스템 설명
+
+**징검다리 시스템**은 사용자의 학습 진행을 시각적으로 표현하는 기능입니다:
+
+#### **StepProgressDto 구조**:
+- `stepNumber`: 단계 번호 (1, 2, 3, 4)
+- `stepTitle`: 단계 제목 ("1단계", "2단계" 등)
+- `completedQuizzes`: 완료한 퀴즈 수
+- `totalQuizzes`: 전체 퀴즈 수 (4)
+- `passedQuizzes`: 통과한 퀴즈 수
+- `failedQuizzes`: 실패한 퀴즈 수
+- `isCompleted`: 징검다리 완성 여부
+- `isPassed`: 징검다리 통과 여부 (50% 이상)
+- `passRate`: 통과율 (0.0 ~ 1.0)
+- `stepDescription`: 단계 설명
+
+#### **통과 조건**:
+- **4문제 중 2문제 이상** 맞춰야 통과 (50% 이상)
+- **4문제 모두 완료**해야 징검다리 완성
+
+#### **프론트엔드 활용 예시**:
+```javascript
+// 징검다리 UI 표시
+progressData.steps.forEach(step => {
+  if (step.isCompleted) {
+    // 완료된 징검다리 표시 (체크마크, 색상 변경 등)
+    showCompletedStep(step.stepNumber);
+  } else if (step.isPassed) {
+    // 통과한 징검다리 표시 (통과 표시)
+    showPassedStep(step.stepNumber);
+  } else {
+    // 미완료 징검다리 표시 (회색, 비활성화)
+    showIncompleteStep(step.stepNumber);
+  }
+});
+```
+
+---
+
 ## 📝 변경 이력
+
+### v1.3.0 (2025-10-15)
+- ✨ 사용자 진행률 API 추가 (징검다리 시스템 포함)
+- ✨ StepProgressDto, LevelProgressDto 구조 추가
+- ✨ 레벨별, 서브섹터별 진행률 조회 API
+- ✨ 징검다리 시스템 구현 (4문제 중 2문제 이상 통과)
+- 🔧 UserProgressService, UserProgressController 추가
+- 📝 API 문서에 사용자 진행률 섹션 추가
 
 ### v1.2.1 (2025-01-08)
 - ✨ 퀴즈 정보 조회 API에 가상기사(ARTICLE) 정보 추가
@@ -1994,6 +2258,6 @@ API 사용 중 문제가 발생하거나 문의사항이 있으시면:
 
 ---
 
-**API 문서 버전**: 1.2.1  
-**최종 업데이트**: 2025-01-08  
+**API 문서 버전**: 1.3.0  
+**최종 업데이트**: 2025-10-15  
 **작성자**: Finsight Development Team

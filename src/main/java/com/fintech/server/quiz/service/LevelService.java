@@ -2,12 +2,15 @@ package com.fintech.server.quiz.service;
 
 import com.fintech.server.quiz.dto.LevelCompletionDto;
 import com.fintech.server.quiz.dto.LevelProgressDto;
+import com.fintech.server.quiz.dto.StepProgressDto;
 import com.fintech.server.quiz.entity.Level;
 import com.fintech.server.quiz.entity.Quiz;
 import com.fintech.server.quiz.entity.UserAnswer;
+import com.fintech.server.quiz.entity.UserProgress;
 import com.fintech.server.quiz.repository.LevelRepository;
 import com.fintech.server.quiz.repository.QuizRepository;
 import com.fintech.server.quiz.repository.UserAnswerRepository;
+import com.fintech.server.quiz.repository.UserProgressRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -15,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 @Service
@@ -25,6 +29,7 @@ public class LevelService {
     private final LevelRepository levelRepository;
     private final QuizRepository quizRepository;
     private final UserAnswerRepository userAnswerRepository;
+    private final UserProgressRepository userProgressRepository;
 
     private static final int QUESTIONS_PER_LEVEL = 4;
     private static final int PASS_SCORE = 3; // 4문제 중 3문제 이상 맞춰야 통과
@@ -56,7 +61,7 @@ public class LevelService {
 
             if (quizProgress.getStatus() == LevelProgressDto.QuizStatus.COMPLETED) {
                 completedQuizzes++;
-                correctAnswers += quizProgress.getCorrectAnswers();
+                correctAnswers += quizProgress.getScore() / 100; // score를 100으로 나누어 정답 수로 변환
                 totalTimeSpent += quizProgress.getTimeSpent();
                 
                 if (startedAt == null) {
@@ -74,25 +79,49 @@ public class LevelService {
         String nextLevelTitle = getNextLevelTitle(nextLevelId);
         boolean nextLevelUnlocked = levelStatus == LevelProgressDto.LevelStatus.COMPLETED;
 
+        // 징검다리 정보 생성
+        List<StepProgressDto> steps = createStepProgress(levelId, userId);
+        boolean isStepPassed = correctAnswers >= 2; // 50% 이상 통과 (4문제 중 2문제 이상)
+        int currentStep = calculateCurrentStep(completedQuizzes);
+
+        // 통과/실패 통계
+        int passedQuizzes = (int) quizProgressList.stream()
+                .filter(qp -> qp.getStatus() == LevelProgressDto.QuizStatus.COMPLETED && qp.getIsCorrect())
+                .count();
+        int failedQuizzes = completedQuizzes - passedQuizzes;
+        double passRate = completedQuizzes > 0 ? (double) passedQuizzes / completedQuizzes : 0.0;
+        double completionRate = (double) completedQuizzes / QUESTIONS_PER_LEVEL;
+
         return LevelProgressDto.builder()
                 .levelId(levelId)
                 .levelTitle(level.getTitle())
+                .subsectorId(level.getSubsector().getId())
                 .subsectorName(level.getSubsector().getName())
                 .levelNumber(level.getLevelNumber())
                 .learningGoal(level.getLearningGoal())
                 .status(levelStatus)
-                .completedQuizzes(completedQuizzes)
                 .totalQuizzes(QUESTIONS_PER_LEVEL)
+                .completedQuizzes(completedQuizzes)
+                .passedQuizzes(passedQuizzes)
+                .failedQuizzes(failedQuizzes)
                 .correctAnswers(correctAnswers)
                 .remainingToPass(Math.max(0, PASS_SCORE - correctAnswers))
                 .startedAt(startedAt)
                 .completedAt(completedAt)
                 .timeSpent(totalTimeSpent)
                 .timeLimit(QUESTIONS_PER_LEVEL * 15 * 60) // 4문제 × 15분
+                .completionRate(completionRate)
+                .passRate(passRate)
                 .quizProgress(quizProgressList)
                 .nextLevelId(nextLevelId)
                 .nextLevelTitle(nextLevelTitle)
                 .nextLevelUnlocked(nextLevelUnlocked)
+                .levelPassed(levelStatus == LevelProgressDto.LevelStatus.COMPLETED)
+                
+                // 징검다리 정보 추가
+                .steps(steps)
+                .isStepPassed(isStepPassed)
+                .currentStep(currentStep)
                 .build();
     }
 
@@ -150,11 +179,10 @@ public class LevelService {
                     .quizTitle(quiz.getTitle())
                     .quizNumber(quizNumber)
                     .status(LevelProgressDto.QuizStatus.NOT_STARTED)
-                    .correctAnswers(0)
-                    .totalQuestions(1) // 각 퀴즈는 1문제
+                    .score(0)
                     .completedAt(null)
                     .timeSpent(0)
-                    .passed(false)
+                    .isCorrect(false)
                     .build();
         }
 
@@ -179,11 +207,10 @@ public class LevelService {
                 .quizTitle(quiz.getTitle())
                 .quizNumber(quizNumber)
                 .status(LevelProgressDto.QuizStatus.COMPLETED)
-                .correctAnswers(correctAnswers)
-                .totalQuestions(1)
+                .score(correctAnswers * 100)
                 .completedAt(completedAt)
                 .timeSpent(timeSpent)
-                .passed(passed)
+                .isCorrect(passed)
                 .build();
     }
 
@@ -230,5 +257,49 @@ public class LevelService {
         int basePoints = correctAnswers * 100; // 문제당 100점
         int timeBonus = Math.max(0, 60 - (timeSpent / 60)) * 10; // 시간 보너스
         return basePoints + timeBonus;
+    }
+
+    /**
+     * 징검다리 단계별 진행률 생성
+     */
+    private List<StepProgressDto> createStepProgress(Long levelId, Long userId) {
+        // user_progress 테이블에서 진행률 조회
+        List<UserProgress> progressList = userProgressRepository.findByUserIdAndLevelId(userId, levelId);
+        
+        // 현재 4문제를 1개 단계로 처리
+        int completedQuizzes = (int) progressList.stream().map(UserProgress::getQuiz).distinct().count();
+        int passedQuizzes = (int) progressList.stream()
+                .filter(UserProgress::getPassed)
+                .map(UserProgress::getQuiz)
+                .distinct()
+                .count();
+        
+        boolean isCompleted = completedQuizzes == 4;
+        boolean isPassed = passedQuizzes >= 2; // 50% 이상 통과
+        double passRate = completedQuizzes > 0 ? (double) passedQuizzes / completedQuizzes : 0.0;
+        
+        StepProgressDto step = StepProgressDto.builder()
+                .stepNumber(1)
+                .stepTitle("1단계")
+                .completedQuizzes(completedQuizzes)
+                .totalQuizzes(4)
+                .passedQuizzes(passedQuizzes)
+                .failedQuizzes(completedQuizzes - passedQuizzes)
+                .isCompleted(isCompleted)
+                .isPassed(isPassed)
+                .passRate(passRate)
+                .stepDescription("기초 금융 상식")
+                .build();
+        
+        return Arrays.asList(step);
+    }
+
+    /**
+     * 현재 진행 중인 단계 계산
+     */
+    private Integer calculateCurrentStep(int completedQuizzes) {
+        if (completedQuizzes == 0) return 1;
+        if (completedQuizzes < 4) return 1;
+        return 1; // 현재는 1단계만
     }
 }
