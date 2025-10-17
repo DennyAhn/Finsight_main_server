@@ -49,7 +49,11 @@ public class SecurityConfig {
             .authorizeHttpRequests(authz -> authz
                 .anyRequest().permitAll() // 모든 경로에 대해 인증 없이 접근 허용
             )
-            .headers(headers -> headers.frameOptions(frameOptions -> frameOptions.sameOrigin()));
+            .headers(headers -> headers
+                .frameOptions(frameOptions -> frameOptions.sameOrigin())
+                .contentTypeOptions(contentTypeOptions -> contentTypeOptions.and())
+                .httpStrictTransportSecurity(hstsConfig -> hstsConfig.disable())
+            );
 
         return http.build();
     }
