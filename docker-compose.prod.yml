@@ -1,5 +1,5 @@
 # ===================================================================
-# Docker Compose for Production (AWS RDS)
+# Docker Compose for Production (AWS RDS) - Final Version
 # ===================================================================
 
 version: '3.8'
@@ -7,10 +7,7 @@ version: '3.8'
 services:
   # Spring Boot 애플리케이션 (프로덕션)
   app:
-    image: dennyahn/fintech-server:latest  # Docker Hub 이미지
-    build:  # 로컬 빌드도 지원 (GitHub Actions에서 빌드 후 푸시)
-      context: .
-      dockerfile: Dockerfile
+    image: dennyahn/fintech-server:latest
     container_name: fintech-app-prod
     restart: unless-stopped
     expose:
@@ -61,25 +58,23 @@ services:
 
   # Nginx 리버스 프록시 (프로덕션)
   nginx:
-    image: dennyahn/finsight-nginx:latest  # Docker Hub 이미지
-    build:  # 로컬 빌드도 지원 (GitHub Actions에서 빌드 후 푸시)
-      context: ./nginx
-      dockerfile: Dockerfile
+    image: dennyahn/finsight-nginx:latest
     container_name: fintech-nginx-prod
     restart: unless-stopped
     ports:
       - "80:80"
       - "443:443"
-    volumes:
-      # SSL 인증서 마운트 (EC2 호스트의 Let's Encrypt 인증서를 컨테이너에 연결)
-      - /etc/letsencrypt:/etc/letsencrypt:ro
     depends_on:
       app:
         condition: service_healthy
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
     networks:
       - fintech-network
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/actuator/health"]
+      # --- 올바른 경로로 수정하고, curl로 통일 ---
+      test: ["CMD", "curl", "-f", "http://localhost/api/actuator/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -95,7 +90,7 @@ networks:
   fintech-network:
     driver: bridge
 
-# 볼륨 정의 (로컬 로그 저장용)
+# 볼륨 정의 (필요시 사용)
 volumes:
   app_logs:
     driver: local
