@@ -47,26 +47,36 @@ jobs:
           # 프로젝트 디렉토리로 이동
           cd Finsight_main_server
           
-          # 최신 코드 가져오기
-          git pull origin main
+          # 로컬 변경사항 무시하고 강제 업데이트
+          echo "🔄 최신 코드로 강제 업데이트 중..."
+          git fetch origin
+          git reset --hard origin/main
+          git clean -fd
           
-          # Docker 컨테이너 중지
-          docker-compose -f docker-compose.prod.yml down
+          # Docker Compose 파일 자동 수정 (version 속성 제거)
+          echo "🔧 Docker Compose 파일 수정 중..."
+          sed -i '/^version:/d' docker-compose.prod.yml
           
-          # Docker 이미지 최신화 (방금 빌드한 최신 이미지)
+          # 완전 재배포
+          echo "🐳 기존 컨테이너 정리 중..."
+          docker-compose -f docker-compose.prod.yml down --volumes --remove-orphans
+          
+          echo "📥 최신 Docker 이미지 가져오기 중..."
           docker-compose -f docker-compose.prod.yml pull
           
-          # Docker 컨테이너 시작
-          docker-compose -f docker-compose.prod.yml up -d
+          echo "🚀 새 컨테이너 시작 중..."
+          docker-compose -f docker-compose.prod.yml up -d --force-recreate
           
-          # 컨테이너 상태 확인
+          # 상태 확인
+          echo "📊 컨테이너 상태 확인 중..."
           docker-compose -f docker-compose.prod.yml ps
           
-          # 애플리케이션 헬스체크
+          # 헬스체크
+          echo "🏥 애플리케이션 헬스체크 중..."
           sleep 30
           curl -f http://localhost:8080/api/health || exit 1
           
-          echo "배포가 성공적으로 완료되었습니다!"
+          echo "✅ 배포가 성공적으로 완료되었습니다!"
         EOF
         
     - name: Notify deployment status
