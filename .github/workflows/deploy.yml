@@ -84,11 +84,15 @@ jobs:
           echo "⏳ Nginx 컨테이너 시작 대기 중..."
           timeout 120s bash -c 'until docker inspect fintech-nginx-prod --format="{{.State.Health.Status}}" | grep -q "healthy"; do sleep 5; done'
           
-          # --- 디버깅을 위해 수정된 부분 ---
+          # --- 헬스체크 경로 수정 ---
           echo "🏥 애플리케이션 헬스체크 중 (최대 1분 대기)..."
           for i in {1..6}; do
+            # 올바른 Actuator 경로로 수정
+            HEALTH_CHECK_URL="http://localhost/api/actuator/health"
+            echo "Checking URL: ${HEALTH_CHECK_URL}"
+            
             # -v 옵션으로 상세한 응답 내용을 확인
-            HEALTH_CHECK_RESULT=$(curl -Lv http://localhost/api/health 2>&1)
+            HEALTH_CHECK_RESULT=$(curl -Lv "${HEALTH_CHECK_URL}" 2>&1)
             echo "${HEALTH_CHECK_RESULT}"
 
             # 200 OK 응답인지 확인
