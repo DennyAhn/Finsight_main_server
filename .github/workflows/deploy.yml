@@ -23,12 +23,21 @@ jobs:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_TOKEN }}
         
-    - name: Build and push Docker image
+    - name: Build and push Spring Boot Docker image
       uses: docker/build-push-action@v5
       with:
         context: .
         push: true
         tags: dennyahn/fintech-server:latest
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+        
+    - name: Build and push Nginx Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: ./nginx
+        push: true
+        tags: dennyahn/finsight-nginx:latest
         cache-from: type=gha
         cache-to: type=gha,mode=max
         

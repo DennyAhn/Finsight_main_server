@@ -61,7 +61,8 @@ services:
 
   # Nginx 리버스 프록시 (프로덕션)
   nginx:
-    build:
+    image: dennyahn/finsight-nginx:latest  # Docker Hub 이미지
+    build:  # 로컬 빌드도 지원 (GitHub Actions에서 빌드 후 푸시)
       context: ./nginx
       dockerfile: Dockerfile
     container_name: fintech-nginx-prod
