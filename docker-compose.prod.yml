@@ -8,9 +8,9 @@ services:
   # Spring Boot 애플리케이션 (프로덕션)
   app:
     image: dennyahn/fintech-server:latest  # Docker Hub 이미지
-    # build:  # 로컬 빌드 대신 Docker Hub 이미지 사용
-    #   context: .
-    #   dockerfile: Dockerfile
+    build:  # 로컬 빌드도 지원 (GitHub Actions에서 빌드 후 푸시)
+      context: .
+      dockerfile: Dockerfile
     container_name: fintech-app-prod
     restart: unless-stopped
     expose:
