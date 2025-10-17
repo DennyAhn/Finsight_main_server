@@ -80,9 +80,15 @@ jobs:
           echo "📊 컨테이너 상태 확인 중..."
           docker-compose -f docker-compose.prod.yml ps
           
-          # 헬스체크
+          # 헬스체크 (Nginx 컨테이너가 완전히 시작될 때까지 대기)
           echo "🏥 애플리케이션 헬스체크 중..."
-          sleep 30
+          sleep 60
+          
+          # Nginx 컨테이너가 healthy 상태가 될 때까지 대기
+          echo "⏳ Nginx 컨테이너 시작 대기 중..."
+          timeout 120 bash -c 'until docker inspect fintech-nginx-prod --format="{{.State.Health.Status}}" | grep -q "healthy"; do sleep 5; done'
+          
+          # 헬스체크 실행
           curl -f http://localhost/api/health || exit 1
           
           echo "✅ 배포가 성공적으로 완료되었습니다!"
