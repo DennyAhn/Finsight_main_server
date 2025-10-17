@@ -70,6 +70,9 @@ services:
     ports:
       - "80:80"
       - "443:443"
+    volumes:
+      # SSL 인증서 마운트 (EC2 호스트의 Let's Encrypt 인증서를 컨테이너에 연결)
+      - /etc/letsencrypt:/etc/letsencrypt:ro
     depends_on:
       app:
         condition: service_healthy
