@@ -61,6 +61,8 @@ security:
       - http://localhost:3000
       - http://localhost:3001
       - https://finsight-c-7rus.vercel.app
+      - https://www.finview.kr
+      - https://finview.kr
     allowed-methods: GET,POST,PUT,DELETE,OPTIONS,PATCH
     allowed-headers: "*"
     allow-credentials: true
