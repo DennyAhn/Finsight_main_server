@@ -82,25 +82,33 @@ jobs:
           
           # Nginx 컨테이너가 healthy 상태가 될 때까지 대기
           echo "⏳ Nginx 컨테이너 시작 대기 중..."
-          timeout 120 bash -c 'until docker inspect fintech-nginx-prod --format="{{.State.Health.Status}}" | grep -q "healthy"; do sleep 5; done'
+          timeout 120s bash -c 'until docker inspect fintech-nginx-prod --format="{{.State.Health.Status}}" | grep -q "healthy"; do sleep 5; done'
           
-          # 애플리케이션이 완전히 준비될 때까지 헬스체크를 10초 간격으로 최대 6번 재시도
+          # --- 디버깅을 위해 수정된 부분 ---
           echo "🏥 애플리케이션 헬스체크 중 (최대 1분 대기)..."
           for i in {1..6}; do
-            # -L 옵션: HTTP->HTTPS 리디렉션 처리
-            # -f 옵션: 서버 에러(4xx, 5xx) 발생 시 실패로 간주
-            # -s 옵션: 성공 시 출력 숨김
-            if curl -Lfs http://localhost/api/health; then
+            # -v 옵션으로 상세한 응답 내용을 확인
+            HEALTH_CHECK_RESULT=$(curl -Lv http://localhost/api/health 2>&1)
+            echo "${HEALTH_CHECK_RESULT}"
+
+            # 200 OK 응답인지 확인
+            if echo "${HEALTH_CHECK_RESULT}" | grep -q "HTTP/1.1 200 OK"; then
               echo "✅ 헬스체크 성공!"
               break
             fi
+
             if [ $i -eq 6 ]; then
-              echo "❌ 헬스체크 실패. 애플리케이션이 정상적으로 시작되지 않았습니다."
+              echo "❌ 헬스체크 최종 실패. 애플리케이션이 정상적으로 시작되지 않았습니다."
+              echo "--- Nginx 컨테이너 로그 ---"
+              docker logs fintech-nginx-prod
+              echo "--- 애플리케이션 컨테이너 로그 ---"
+              docker logs fintech-app-prod
               exit 1
             fi
             echo "($i/6) 헬스체크 재시도 대기 중..."
             sleep 10
           done
+          # --- 여기까지 ---
           
           echo "✅ 배포가 성공적으로 완료되었습니다!"
         EOF
