@@ -64,12 +64,38 @@ public class QuizService {
 
         boolean isCorrect = selectedOption.isCorrect();
 
-        // 사용자 답변 기록 저장
-        UserAnswer userAnswer = new UserAnswer();
-        userAnswer.setUser(currentUser);
-        userAnswer.setQuestion(selectedOption.getQuestion());
-        userAnswer.setSelectedOption(selectedOption);
-        userAnswer.setCorrect(isCorrect);
+        // 중복 답변 방지: 같은 사용자가 같은 문제에 대해 이미 답변했는지 확인
+        Long quizId = selectedOption.getQuestion().getQuizId();
+        List<UserAnswer> existingAnswers = userAnswerRepository.findByUserIdAndQuizId(userId, quizId)
+                .stream()
+                .filter(answer -> answer.getQuestion().getId().equals(requestDto.getQuestionId()))
+                .collect(Collectors.toList());
+        
+        UserAnswer userAnswer;
+        if (!existingAnswers.isEmpty()) {
+            // 기존 답변이 있으면 가장 최근 답변을 업데이트
+            userAnswer = existingAnswers.stream()
+                    .max(Comparator.comparing(UserAnswer::getAnsweredAt))
+                    .orElse(existingAnswers.get(0));
+            
+            userAnswer.setSelectedOption(selectedOption);
+            userAnswer.setAnsweredAt(LocalDateTime.now());
+            userAnswer.setCorrect(isCorrect);
+            
+            log.info("기존 답변 업데이트: userId={}, questionId={}, selectedOptionId={}, isCorrect={}", 
+                    userId, requestDto.getQuestionId(), requestDto.getSelectedOptionId(), isCorrect);
+        } else {
+            // 새로운 답변 생성
+            userAnswer = new UserAnswer();
+            userAnswer.setUser(currentUser);
+            userAnswer.setQuestion(selectedOption.getQuestion());
+            userAnswer.setSelectedOption(selectedOption);
+            userAnswer.setCorrect(isCorrect);
+            
+            log.info("새 답변 생성: userId={}, questionId={}, selectedOptionId={}, isCorrect={}", 
+                    userId, requestDto.getQuestionId(), requestDto.getSelectedOptionId(), isCorrect);
+        }
+        
         userAnswerRepository.save(userAnswer);
 
         // 틀린 답변인 경우 오답 노트 자동 생성
@@ -144,7 +170,7 @@ public class QuizService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
         
-        Quiz quiz = quizRepository.findById(quizId)
+        Quiz quiz = quizRepository.findByIdWithDetails(quizId)
                 .orElseThrow(() -> new RuntimeException("Quiz not found with id: " + quizId));
 
         // 2. 사용자의 모든 답변 조회
@@ -154,11 +180,19 @@ public class QuizService {
             throw new IllegalArgumentException("No answers found for this quiz. Please complete the quiz first.");
         }
 
-        // 3. 점수 계산
-        int correctAnswers = (int) userAnswers.stream()
+        // 3. 점수 계산 (중복 제거: 각 문제별로 가장 최근 답변만 고려)
+        Map<Long, UserAnswer> latestAnswersByQuestion = userAnswers.stream()
+                .collect(Collectors.toMap(
+                    answer -> answer.getQuestion().getId(),
+                    answer -> answer,
+                    (existing, replacement) -> 
+                        replacement.getAnsweredAt().isAfter(existing.getAnsweredAt()) ? replacement : existing
+                ));
+        
+        int correctAnswers = (int) latestAnswersByQuestion.values().stream()
                 .filter(UserAnswer::isCorrect)
                 .count();
-        int totalQuestions = userAnswers.size();
+        int totalQuestions = quiz.getQuestions().size(); // 퀴즈의 실제 문제 수
         boolean passed = correctAnswers >= 3; // 3문제 이상 맞춰야 통과 (4문제 기준)
         
         // 4. UserProgress 저장 (퀴즈 완료 기록) - 중복 방지
