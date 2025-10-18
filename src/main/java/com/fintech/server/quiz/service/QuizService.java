@@ -22,8 +22,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -167,9 +166,17 @@ public class QuizService {
         UserProgress userProgress;
         
         if (!existingProgress.isEmpty()) {
-            // 기존 진행 기록이 있으면 업데이트
+            // 기존 진행 기록이 있으면 업데이트 (중복 제거)
             userProgress = existingProgress.get(0); // 가장 최근 기록
             log.info("기존 UserProgress 업데이트: userId={}, quizId={}", userId, quizId);
+            
+            // 중복된 다른 기록들 삭제
+            if (existingProgress.size() > 1) {
+                List<UserProgress> duplicatesToDelete = existingProgress.subList(1, existingProgress.size());
+                userProgressRepository.deleteAll(duplicatesToDelete);
+                log.info("중복된 UserProgress {}개 삭제: userId={}, quizId={}", 
+                        duplicatesToDelete.size(), userId, quizId);
+            }
         } else {
             // 새로운 진행 기록 생성
             userProgress = new UserProgress();
@@ -278,7 +285,7 @@ public class QuizService {
     }
 
     /**
-     * 사용자 총점수 조회 메서드
+     * 사용자 총점수 조회 메서드 (중복 제거)
      */
     public java.util.Map<String, Object> getUserTotalScore(Long userId) {
         log.info("사용자 {}의 총점수 조회", userId);
@@ -292,18 +299,30 @@ public class QuizService {
         List<com.fintech.server.quiz.entity.UserProgress> progressList = 
             userProgressRepository.findByUserIdOrderByCreatedAtDesc(userId);
         
-        // 총점수 계산
-        int totalScore = progressList.stream()
+        // 중복 제거: 같은 퀴즈에 대해서는 가장 최근 기록만 유지
+        Map<Long, com.fintech.server.quiz.entity.UserProgress> uniqueProgressMap = new HashMap<>();
+        for (com.fintech.server.quiz.entity.UserProgress progress : progressList) {
+            Long quizId = progress.getQuiz().getId();
+            if (!uniqueProgressMap.containsKey(quizId)) {
+                uniqueProgressMap.put(quizId, progress);
+            }
+        }
+        
+        List<com.fintech.server.quiz.entity.UserProgress> uniqueProgressList = 
+            new ArrayList<>(uniqueProgressMap.values());
+        
+        // 총점수 계산 (중복 제거된 리스트 사용)
+        int totalScore = uniqueProgressList.stream()
                 .filter(p -> p.getFinishedAt() != null) // 완료된 퀴즈만
                 .mapToInt(com.fintech.server.quiz.entity.UserProgress::getScore)
                 .sum();
         
-        // 통계 정보
-        int totalQuizzes = progressList.size();
-        int completedQuizzes = (int) progressList.stream()
+        // 통계 정보 (중복 제거된 리스트 사용)
+        int totalQuizzes = uniqueProgressList.size();
+        int completedQuizzes = (int) uniqueProgressList.stream()
                 .filter(p -> p.getFinishedAt() != null)
                 .count();
-        int passedQuizzes = (int) progressList.stream()
+        int passedQuizzes = (int) uniqueProgressList.stream()
                 .filter(p -> p.getPassed() != null && p.getPassed())
                 .count();
         
@@ -317,8 +336,8 @@ public class QuizService {
         response.put("averageScore", completedQuizzes > 0 ? (double) totalScore / completedQuizzes : 0.0);
         response.put("passRate", completedQuizzes > 0 ? (double) passedQuizzes / completedQuizzes : 0.0);
         
-        log.info("사용자 {}의 총점수 조회 완료: 총점={}, 완료퀴즈={}, 통과퀴즈={}", 
-                userId, totalScore, completedQuizzes, passedQuizzes);
+        log.info("사용자 {}의 총점수 조회 완료 (중복 제거): 총점={}, 완료퀴즈={}, 통과퀴즈={}, 중복제거전={}, 중복제거후={}", 
+                userId, totalScore, completedQuizzes, passedQuizzes, progressList.size(), uniqueProgressList.size());
         
         return response;
     }

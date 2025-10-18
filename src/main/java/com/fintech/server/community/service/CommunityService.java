@@ -120,4 +120,71 @@ public class CommunityService {
                 .map(PostResponseDto::from)
                 .collect(Collectors.toList());
     }
+
+    @Transactional(readOnly = true)
+    public PostResponseDto findPostById(Long postId) {
+        CommunityPost post = postRepository.findById(postId)
+                .orElseThrow(() -> new RuntimeException("Post not found with id: " + postId));
+        return PostResponseDto.from(post);
+    }
+
+    @Transactional
+    public PostResponseDto updatePost(Long postId, PostRequestDto requestDto, Long userId) {
+        CommunityPost post = postRepository.findById(postId)
+                .orElseThrow(() -> new RuntimeException("Post not found with id: " + postId));
+        
+        // 작성자 권한 확인
+        if (!post.getAuthor().getId().equals(userId)) {
+            throw new RuntimeException("You are not authorized to update this post");
+        }
+        
+        // 포스트 내용 업데이트
+        post.setBody(requestDto.getBody());
+        
+        // 기존 태그 링크 삭제
+        postTagLinkRepository.deleteByPostId(postId);
+        
+        // 새 태그 처리
+        if (requestDto.getTags() != null && !requestDto.getTags().isEmpty()) {
+            for (String tagName : requestDto.getTags()) {
+                Tag tag = tagRepository.findByName(tagName)
+                        .orElseGet(() -> {
+                            Tag newTag = new Tag();
+                            newTag.setName(tagName);
+                            return tagRepository.save(newTag);
+                        });
+                
+                PostTagLinkId linkId = new PostTagLinkId();
+                linkId.setPostId(postId);
+                linkId.setTagId(tag.getId());
+                
+                PostTagLink link = new PostTagLink();
+                link.setId(linkId);
+                link.setPost(post);
+                link.setTag(tag);
+                
+                postTagLinkRepository.save(link);
+            }
+        }
+        
+        CommunityPost updatedPost = postRepository.save(post);
+        return PostResponseDto.from(updatedPost);
+    }
+
+    @Transactional
+    public void deletePost(Long postId, Long userId) {
+        CommunityPost post = postRepository.findById(postId)
+                .orElseThrow(() -> new RuntimeException("Post not found with id: " + postId));
+        
+        // 작성자 권한 확인
+        if (!post.getAuthor().getId().equals(userId)) {
+            throw new RuntimeException("You are not authorized to delete this post");
+        }
+        
+        // 관련 태그 링크 삭제
+        postTagLinkRepository.deleteByPostId(postId);
+        
+        // 포스트 삭제
+        postRepository.delete(post);
+    }
 }
