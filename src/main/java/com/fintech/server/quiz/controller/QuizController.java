@@ -85,6 +85,22 @@ public class QuizController {
             return ResponseEntity.internalServerError().body("Error retrying quiz: " + e.getMessage());
         }
     }
+
+    /**
+     * 사용자 총점수 조회 API
+     */
+    @GetMapping("/user/{userId}/total-score")
+    public ResponseEntity<?> getUserTotalScore(@PathVariable("userId") Long userId) {
+        try {
+            return ResponseEntity.ok(quizService.getUserTotalScore(userId));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body("Invalid request: " + e.getMessage());
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body("Error getting total score: " + e.getMessage());
+        }
+    }
 }
 
 

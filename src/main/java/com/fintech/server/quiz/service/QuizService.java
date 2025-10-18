@@ -276,5 +276,51 @@ public class QuizService {
                 ).collect(Collectors.toList()) : Collections.emptyList())
                 .build();
     }
+
+    /**
+     * 사용자 총점수 조회 메서드
+     */
+    public java.util.Map<String, Object> getUserTotalScore(Long userId) {
+        log.info("사용자 {}의 총점수 조회", userId);
+        
+        // 사용자 존재 확인
+        if (!userRepository.existsById(userId)) {
+            throw new RuntimeException("User not found with id: " + userId);
+        }
+        
+        // 사용자의 모든 UserProgress 조회
+        List<com.fintech.server.quiz.entity.UserProgress> progressList = 
+            userProgressRepository.findByUserIdOrderByCreatedAtDesc(userId);
+        
+        // 총점수 계산
+        int totalScore = progressList.stream()
+                .filter(p -> p.getFinishedAt() != null) // 완료된 퀴즈만
+                .mapToInt(com.fintech.server.quiz.entity.UserProgress::getScore)
+                .sum();
+        
+        // 통계 정보
+        int totalQuizzes = progressList.size();
+        int completedQuizzes = (int) progressList.stream()
+                .filter(p -> p.getFinishedAt() != null)
+                .count();
+        int passedQuizzes = (int) progressList.stream()
+                .filter(p -> p.getPassed() != null && p.getPassed())
+                .count();
+        
+        // 응답 객체 생성
+        java.util.Map<String, Object> response = new java.util.HashMap<>();
+        response.put("userId", userId);
+        response.put("totalScore", totalScore);
+        response.put("totalQuizzes", totalQuizzes);
+        response.put("completedQuizzes", completedQuizzes);
+        response.put("passedQuizzes", passedQuizzes);
+        response.put("averageScore", completedQuizzes > 0 ? (double) totalScore / completedQuizzes : 0.0);
+        response.put("passRate", completedQuizzes > 0 ? (double) passedQuizzes / completedQuizzes : 0.0);
+        
+        log.info("사용자 {}의 총점수 조회 완료: 총점={}, 완료퀴즈={}, 통과퀴즈={}", 
+                userId, totalScore, completedQuizzes, passedQuizzes);
+        
+        return response;
+    }
 }
 

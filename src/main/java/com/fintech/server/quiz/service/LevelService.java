@@ -35,41 +35,76 @@ public class LevelService {
     private static final int PASS_SCORE = 3; // 4문제 중 3문제 이상 맞춰야 통과
 
     /**
-     * 레벨 진행 상황 조회
+     * 레벨 진행 상황 조회 (UserProgress 테이블 기준으로 통일)
      */
     public LevelProgressDto getLevelProgress(Long levelId, Long userId) {
         Level level = levelRepository.findById(levelId)
                 .orElseThrow(() -> new RuntimeException("Level not found with id: " + levelId));
 
-        List<Quiz> quizzes = quizRepository.findByLevelIdOrderById(levelId);
-        if (quizzes.size() != QUESTIONS_PER_LEVEL) {
-            throw new RuntimeException("Level must have exactly " + QUESTIONS_PER_LEVEL + " quizzes");
+        // UserProgress 테이블에서 진행 상황 조회
+        List<UserProgress> progressList = userProgressRepository.findByUserIdAndLevelId(userId, levelId);
+        
+        if (progressList.isEmpty()) {
+            return LevelProgressDto.builder()
+                    .levelId(levelId)
+                    .levelTitle(level.getTitle())
+                    .subsectorId(level.getSubsector().getId())
+                    .subsectorName(level.getSubsector().getName())
+                    .levelNumber(level.getLevelNumber())
+                    .learningGoal(level.getLearningGoal())
+                    .status(LevelProgressDto.LevelStatus.NOT_STARTED)
+                    .totalQuizzes(QUESTIONS_PER_LEVEL)
+                    .completedQuizzes(0)
+                    .passedQuizzes(0)
+                    .failedQuizzes(0)
+                    .correctAnswers(0)
+                    .remainingToPass(3)
+                    .startedAt(null)
+                    .completedAt(null)
+                    .timeSpent(0)
+                    .timeLimit(QUESTIONS_PER_LEVEL * 15 * 60)
+                    .completionRate(0.0)
+                    .passRate(0.0)
+                    .quizProgress(new ArrayList<>())
+                    .nextLevelId(null)
+                    .nextLevelTitle(null)
+                    .nextLevelUnlocked(false)
+                    .levelPassed(false)
+                    .steps(new ArrayList<>())
+                    .isStepPassed(false)
+                    .currentStep(1)
+                    .build();
         }
 
-        // 퀴즈별 진행 상황 조회
-        List<LevelProgressDto.QuizProgressDto> quizProgressList = new ArrayList<>();
-        int completedQuizzes = 0;
-        int correctAnswers = 0;
-        LocalDateTime startedAt = null;
-        LocalDateTime completedAt = null;
-        int totalTimeSpent = 0;
+        // 통계 계산 (UserProgress 테이블 기준)
+        int completedQuizzes = (int) progressList.stream()
+                .filter(p -> p.getFinishedAt() != null)
+                .count();
+        
+        int passedQuizzes = (int) progressList.stream()
+                .filter(p -> p.getPassed() != null && p.getPassed())
+                .count();
+        
+        int failedQuizzes = completedQuizzes - passedQuizzes;
+        
+        // 정답 수 계산 (UserProgress의 score 필드 사용)
+        int correctAnswers = progressList.stream()
+                .filter(p -> p.getFinishedAt() != null)
+                .mapToInt(UserProgress::getScore)
+                .sum();
 
-        for (int i = 0; i < quizzes.size(); i++) {
-            Quiz quiz = quizzes.get(i);
-            LevelProgressDto.QuizProgressDto quizProgress = getQuizProgress(quiz, userId, i + 1);
-            quizProgressList.add(quizProgress);
-
-            if (quizProgress.getStatus() == LevelProgressDto.QuizStatus.COMPLETED) {
-                completedQuizzes++;
-                correctAnswers += quizProgress.getScore() / 100; // score를 100으로 나누어 정답 수로 변환
-                totalTimeSpent += quizProgress.getTimeSpent();
+        // 시간 정보
+        LocalDateTime startedAt = progressList.stream()
+                .filter(p -> p.getStartedAt() != null)
+                .map(UserProgress::getStartedAt)
+                .min(LocalDateTime::compareTo)
+                .orElse(null);
                 
-                if (startedAt == null) {
-                    startedAt = quizProgress.getCompletedAt().minusSeconds(quizProgress.getTimeSpent());
-                }
-                completedAt = quizProgress.getCompletedAt();
-            }
-        }
+        LocalDateTime completedAt = progressList.stream()
+                .filter(p -> p.getFinishedAt() != null)
+                .map(UserProgress::getFinishedAt)
+                .max(LocalDateTime::compareTo)
+                .orElse(null);
 
         // 레벨 상태 결정
         LevelProgressDto.LevelStatus levelStatus = determineLevelStatus(completedQuizzes, correctAnswers);
@@ -84,11 +119,8 @@ public class LevelService {
         boolean isStepPassed = correctAnswers >= 3; // 75% 이상 통과 (4문제 중 3문제 이상)
         int currentStep = calculateCurrentStep(completedQuizzes);
 
-        // 통과/실패 통계
-        int passedQuizzes = (int) quizProgressList.stream()
-                .filter(qp -> qp.getStatus() == LevelProgressDto.QuizStatus.COMPLETED && qp.getIsCorrect())
-                .count();
-        int failedQuizzes = completedQuizzes - passedQuizzes;
+        // 퀴즈별 진행 상황 생성 (UserProgress 기준)
+        List<LevelProgressDto.QuizProgressDto> quizProgressList = createQuizProgressList(levelId, userId, progressList);
         double passRate = completedQuizzes > 0 ? (double) passedQuizzes / completedQuizzes : 0.0;
         double completionRate = (double) completedQuizzes / QUESTIONS_PER_LEVEL;
 
@@ -108,7 +140,7 @@ public class LevelService {
                 .remainingToPass(Math.max(0, PASS_SCORE - correctAnswers))
                 .startedAt(startedAt)
                 .completedAt(completedAt)
-                .timeSpent(totalTimeSpent)
+                .timeSpent(completedQuizzes * 300) // 완료된 퀴즈 수 × 5분
                 .timeLimit(QUESTIONS_PER_LEVEL * 15 * 60) // 4문제 × 15분
                 .completionRate(completionRate)
                 .passRate(passRate)
@@ -167,7 +199,57 @@ public class LevelService {
     }
 
     /**
-     * 퀴즈 진행 상황 조회
+     * 퀴즈별 진행 상황 리스트 생성 (UserProgress 기준)
+     */
+    private List<LevelProgressDto.QuizProgressDto> createQuizProgressList(Long levelId, Long userId, List<UserProgress> progressList) {
+        List<Quiz> quizzes = quizRepository.findByLevelIdOrderById(levelId);
+        List<LevelProgressDto.QuizProgressDto> quizProgressList = new ArrayList<>();
+        
+        for (int i = 0; i < quizzes.size(); i++) {
+            Quiz quiz = quizzes.get(i);
+            UserProgress userProgress = progressList.stream()
+                    .filter(p -> p.getQuiz().getId().equals(quiz.getId()))
+                    .findFirst()
+                    .orElse(null);
+            
+            LevelProgressDto.QuizProgressDto quizProgress = createQuizProgressFromUserProgress(quiz, userProgress, i + 1);
+            quizProgressList.add(quizProgress);
+        }
+        
+        return quizProgressList;
+    }
+
+    /**
+     * UserProgress에서 QuizProgressDto 생성
+     */
+    private LevelProgressDto.QuizProgressDto createQuizProgressFromUserProgress(Quiz quiz, UserProgress userProgress, int quizNumber) {
+        if (userProgress == null || userProgress.getFinishedAt() == null) {
+            return LevelProgressDto.QuizProgressDto.builder()
+                    .quizId(quiz.getId())
+                    .quizTitle(quiz.getTitle())
+                    .quizNumber(quizNumber)
+                    .status(LevelProgressDto.QuizStatus.NOT_STARTED)
+                    .score(0)
+                    .completedAt(null)
+                    .timeSpent(0)
+                    .isCorrect(false)
+                    .build();
+        }
+
+        return LevelProgressDto.QuizProgressDto.builder()
+                .quizId(quiz.getId())
+                .quizTitle(quiz.getTitle())
+                .quizNumber(quizNumber)
+                .status(LevelProgressDto.QuizStatus.COMPLETED)
+                .score(userProgress.getScore() * 100) // score를 100배로 변환
+                .completedAt(userProgress.getFinishedAt())
+                .timeSpent(300) // 기본 5분
+                .isCorrect(userProgress.getPassed())
+                .build();
+    }
+
+    /**
+     * 퀴즈 진행 상황 조회 (기존 메서드 - 호환성 유지)
      */
     private LevelProgressDto.QuizProgressDto getQuizProgress(Quiz quiz, Long userId, int quizNumber) {
         // 사용자 답변 조회
@@ -200,7 +282,7 @@ public class LevelService {
         // 소요 시간 계산 (대략적)
         int timeSpent = completedAt != null ? 300 : 0; // 기본 5분
 
-        boolean passed = correctAnswers >= 1; // 1문제 중 1문제 맞춰야 통과
+        boolean passed = correctAnswers >= 3; // 3문제 이상 맞춰야 통과 (4문제 기준)
 
         return LevelProgressDto.QuizProgressDto.builder()
                 .quizId(quiz.getId())
@@ -275,7 +357,7 @@ public class LevelService {
                 .count();
         
         boolean isCompleted = completedQuizzes == 4;
-        boolean isPassed = passedQuizzes >= 2; // 50% 이상 통과
+        boolean isPassed = passedQuizzes >= 3; // 75% 이상 통과 (4문제 중 3문제 이상)
         double passRate = completedQuizzes > 0 ? (double) passedQuizzes / completedQuizzes : 0.0;
         
         StepProgressDto step = StepProgressDto.builder()

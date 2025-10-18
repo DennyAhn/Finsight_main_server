@@ -90,6 +90,7 @@ public class UserProgressController {
         }
     }
     
+
     /**
      * 사용자의 레벨별 완료한 퀴즈 수 요약 조회
      */

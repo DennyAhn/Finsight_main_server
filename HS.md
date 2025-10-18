@@ -58,6 +58,7 @@ sequenceDiagram
 | `POST` | `/api/quizzes/{id}/complete` | 퀴즈 완료 |
 | `POST` | `/api/quizzes/{id}/retry` | 퀴즈 다시풀기 (이전 답변 삭제) |
 | `GET` | `/api/quizzes/{id}` | 퀴즈 정보 조회 |
+| `GET` | `/api/quizzes/user/{userId}/total-score` | 사용자 총점수 조회 |
 
 ### 🏅 뱃지 관련 API
 | 메서드 | 엔드포인트 | 설명 |
@@ -221,7 +222,40 @@ async function getUserProgressSummary(userId) {
 }
 ```
 
-### Step 5: 오답노트 조회 및 관리
+### Step 5: 사용자 총점수 조회
+```javascript
+// 사용자 총점수 조회
+async function getUserTotalScore(userId) {
+  const response = await fetch(`/api/quizzes/user/${userId}/total-score`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    }
+  });
+  
+  if (!response.ok) {
+    throw new Error('총점수 조회 실패');
+  }
+  
+  const scoreData = await response.json();
+  console.log('사용자 총점수:', scoreData);
+  
+  return scoreData;
+}
+
+// 총점수 표시 함수
+function displayUserScore(scoreData) {
+  const { totalScore, completedQuizzes, passedQuizzes, averageScore, passRate } = scoreData;
+  
+  document.getElementById('total-score').textContent = totalScore;
+  document.getElementById('completed-quizzes').textContent = completedQuizzes;
+  document.getElementById('passed-quizzes').textContent = passedQuizzes;
+  document.getElementById('average-score').textContent = averageScore.toFixed(1);
+  document.getElementById('pass-rate').textContent = (passRate * 100).toFixed(1) + '%';
+}
+```
+
+### Step 6: 오답노트 조회 및 관리
 ```javascript
 // 오답노트 목록 조회 (필터링, 페이징)
 async function getWrongNotes(userId, page = 0, size = 20, filter = 'all') {
@@ -355,29 +389,36 @@ async function completeQuizFlow(userId, quizId, levelId, answers) {
     // 2. 퀴즈 완료 (이때 뱃지와 징검다리 자동 업데이트)
     const quizResult = await completeQuiz(userId, quizId);
     
-    // 3. 퀴즈 결과에 따른 처리
+    // 3. 사용자 총점수 조회
+    const userScore = await getUserTotalScore(userId);
+    
+    // 4. 퀴즈 결과에 따른 처리
     if (quizResult.passed) {
-      // 3-1. 통과한 경우: 뱃지와 징검다리 조회
+      // 4-1. 통과한 경우: 뱃지와 징검다리 조회
       const currentBadge = await getCurrentBadge(userId);
       const levelProgress = await getLevelProgress(userId, levelId);
       
       // UI 업데이트
       updateBadgeDisplay(currentBadge);
       updateSteppingStones(levelProgress);
+      displayUserScore(userScore);
       showQuizResult(quizResult);
       
       return {
         quizResult,
         currentBadge,
-        levelProgress
+        levelProgress,
+        userScore
       };
     } else {
-      // 3-2. 실패한 경우: 다시풀기 옵션 제공
+      // 4-2. 실패한 경우: 다시풀기 옵션 제공
+      displayUserScore(userScore);
       showQuizResult(quizResult);
       showRetryOption(userId, quizId);
       
       return {
         quizResult,
+        userScore,
         needsRetry: true
       };
     }
@@ -484,6 +525,60 @@ function getStepClass(step) {
   } else {
     return 'not-started'; // 미시작
   }
+}
+
+// 사용자 총점수 표시 함수
+function displayUserScore(scoreData) {
+  const { totalScore, completedQuizzes, passedQuizzes, averageScore, passRate } = scoreData;
+  
+  // 총점수 표시
+  const totalScoreElement = document.getElementById('total-score');
+  if (totalScoreElement) {
+    totalScoreElement.textContent = totalScore;
+  }
+  
+  // 완료 퀴즈 수 표시
+  const completedQuizzesElement = document.getElementById('completed-quizzes');
+  if (completedQuizzesElement) {
+    completedQuizzesElement.textContent = completedQuizzes;
+  }
+  
+  // 통과 퀴즈 수 표시
+  const passedQuizzesElement = document.getElementById('passed-quizzes');
+  if (passedQuizzesElement) {
+    passedQuizzesElement.textContent = passedQuizzes;
+  }
+  
+  // 평균 점수 표시
+  const averageScoreElement = document.getElementById('average-score');
+  if (averageScoreElement) {
+    averageScoreElement.textContent = averageScore.toFixed(1);
+  }
+  
+  // 통과율 표시
+  const passRateElement = document.getElementById('pass-rate');
+  if (passRateElement) {
+    passRateElement.textContent = (passRate * 100).toFixed(1) + '%';
+  }
+  
+  // 점수 등급 표시
+  const scoreGradeElement = document.getElementById('score-grade');
+  if (scoreGradeElement) {
+    const grade = getScoreGrade(averageScore);
+    scoreGradeElement.textContent = grade;
+    scoreGradeElement.className = `score-grade ${grade.toLowerCase()}`;
+  }
+}
+
+// 점수 등급 계산 함수
+function getScoreGrade(averageScore) {
+  if (averageScore >= 4.0) return 'A+';
+  if (averageScore >= 3.5) return 'A';
+  if (averageScore >= 3.0) return 'B+';
+  if (averageScore >= 2.5) return 'B';
+  if (averageScore >= 2.0) return 'C+';
+  if (averageScore >= 1.5) return 'C';
+  return 'D';
 }
 
 // 징검다리 아이콘 결정
@@ -679,6 +774,19 @@ function displayWrongNoteStatistics(statistics) {
 "퀴즈 다시풀기 준비가 완료되었습니다. 이제 새로 시작할 수 있습니다."
 ```
 
+### 사용자 총점수 조회 응답
+```json
+{
+  "userId": 1327,
+  "totalScore": 4,
+  "totalQuizzes": 1,
+  "completedQuizzes": 1,
+  "passedQuizzes": 1,
+  "averageScore": 4.0,
+  "passRate": 1.0
+}
+```
+
 ### 오답노트 목록 응답
 ```json
 {
@@ -821,6 +929,7 @@ async function safeApiCall(apiFunction, ...args) {
 - **통과 조건**: 4문제 중 3문제 이상 맞춰야 통과 (75% 이상)
 - **실패 시**: 다시풀기 API로 이전 답변 삭제 후 새로 시작
 - **완성 조건**: 4문제 모두 완료해야 징검다리 완성
+- **총점수 조회**: `/api/quizzes/user/{userId}/total-score`로 사용자 전체 점수 통계 조회
 
 ### 🎯 징검다리 시스템
 - **징검다리 통과**: 4문제 중 3문제 이상 맞춰야 징검다리 통과 (75% 이상)
@@ -829,6 +938,12 @@ async function safeApiCall(apiFunction, ...args) {
   - ❌ **완료 + 실패**: X마크  
   - 🔄 **진행 중**: 진행 아이콘
   - ⭕ **미시작**: 빈 원
+
+### 📊 총점수 시스템
+- **API 위치**: `/api/quizzes/user/{userId}/total-score` (QuizController)
+- **제공 정보**: 총점수, 완료/통과 퀴즈 수, 평균 점수, 통과율
+- **실시간 업데이트**: 퀴즈 완료 시마다 자동으로 업데이트
+- **점수 등급**: A+ (4.0+) ~ D (1.5 미만) 자동 계산
 
 ### 📝 오답노트 시스템
 - **자동 생성**: 틀린 답변 제출 시 자동으로 오답노트 생성
@@ -841,6 +956,41 @@ async function safeApiCall(apiFunction, ...args) {
 - **로딩 상태**: API 호출 중 로딩 표시 권장
 - **사용자 피드백**: 뱃지 업그레이드 시 축하 메시지 표시
 - **오답노트 활용**: 틀린 문제들을 퀴즈 형태로 재구성 가능
+- **총점수 표시**: 사용자 성과를 시각적으로 표현
+
+### 📱 총점수 표시 HTML 구조 예시
+```html
+<!-- 사용자 총점수 표시 영역 -->
+<div class="user-score-panel">
+  <h3>나의 성과</h3>
+  <div class="score-grid">
+    <div class="score-item">
+      <span class="score-label">총점수</span>
+      <span class="score-value" id="total-score">0</span>
+    </div>
+    <div class="score-item">
+      <span class="score-label">완료 퀴즈</span>
+      <span class="score-value" id="completed-quizzes">0</span>
+    </div>
+    <div class="score-item">
+      <span class="score-label">통과 퀴즈</span>
+      <span class="score-value" id="passed-quizzes">0</span>
+    </div>
+    <div class="score-item">
+      <span class="score-label">평균 점수</span>
+      <span class="score-value" id="average-score">0.0</span>
+    </div>
+    <div class="score-item">
+      <span class="score-label">통과율</span>
+      <span class="score-value" id="pass-rate">0%</span>
+    </div>
+    <div class="score-item">
+      <span class="score-label">등급</span>
+      <span class="score-grade" id="score-grade">D</span>
+    </div>
+  </div>
+</div>
+```
 
 ---
 

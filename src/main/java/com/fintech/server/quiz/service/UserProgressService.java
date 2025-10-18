@@ -89,7 +89,7 @@ public class UserProgressService {
         
         // 징검다리 정보 생성
         List<com.fintech.server.quiz.dto.StepProgressDto> steps = createStepProgress(levelId, userId, completedQuizzes, passedQuizzes);
-        boolean isStepPassed = passedQuizzes >= 2; // 50% 이상 통과 (4문제 중 2문제 이상)
+        boolean isStepPassed = passedQuizzes >= 3; // 75% 이상 통과 (4문제 중 3문제 이상)
         int currentStep = calculateCurrentStep(completedQuizzes);
         
         return LevelProgressDto.builder()
@@ -272,7 +272,7 @@ public class UserProgressService {
     private List<com.fintech.server.quiz.dto.StepProgressDto> createStepProgress(Long levelId, Long userId, int completedQuizzes, int passedQuizzes) {
         // 현재 4문제를 1개 단계로 처리
         boolean isCompleted = completedQuizzes == 4;
-        boolean isPassed = passedQuizzes >= 2; // 50% 이상 통과
+        boolean isPassed = passedQuizzes >= 3; // 75% 이상 통과 (4문제 중 3문제 이상)
         double passRate = completedQuizzes > 0 ? (double) passedQuizzes / completedQuizzes : 0.0;
         
         com.fintech.server.quiz.dto.StepProgressDto step = com.fintech.server.quiz.dto.StepProgressDto.builder()
