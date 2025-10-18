@@ -10,8 +10,6 @@ import com.fintech.server.quiz.entity.UserDailyActivity;
 import com.fintech.server.quiz.repository.LevelRepository;
 import com.fintech.server.quiz.repository.UserAnswerRepository;
 import com.fintech.server.quiz.repository.UserDailyActivityRepository;
-import com.fintech.server.quiz.repository.BadgeRepository;
-import com.fintech.server.quiz.repository.UserBadgeRepository;
 import com.fintech.server.quiz.entity.Badge;
 import com.fintech.server.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -35,9 +33,8 @@ public class DashboardService {
     private final UserAnswerRepository userAnswerRepository;
     private final UserDailyActivityRepository userDailyActivityRepository;
     private final LevelService levelService;
-    private final BadgeRepository badgeRepository;
-    private final UserBadgeRepository userBadgeRepository;
     private final BadgeService badgeService;
+    private final QuizService quizService;
 
     /**
      * 사용자 대시보드 조회
@@ -247,12 +244,14 @@ public class DashboardService {
     }
 
     private int calculateTotalScore(Long userId) {
-        // 총 점수 계산 - 맞힌 문제 수 * 100점
-        List<UserAnswer> correctAnswers = userAnswerRepository.findByUserId(userId).stream()
-                .filter(UserAnswer::isCorrect)
-                .collect(Collectors.toList());
-        
-        return correctAnswers.size() * 100;
+        // QuizService의 정확한 총점수 계산 사용 (중복 제거 포함)
+        try {
+            java.util.Map<String, Object> scoreData = quizService.getUserTotalScore(userId);
+            return (Integer) scoreData.get("totalScore");
+        } catch (Exception e) {
+            log.warn("Failed to get total score from QuizService for user: {}", userId, e);
+            return 0;
+        }
     }
 
     private int calculateCompletedLevels(Long userId) {
@@ -275,12 +274,14 @@ public class DashboardService {
     }
 
     private int calculateCompletedQuizzes(Long userId) {
-        // 완료된 퀴즈 수 계산
-        List<UserAnswer> userAnswers = userAnswerRepository.findByUserId(userId);
-        return (int) userAnswers.stream()
-                .map(answer -> answer.getQuestion().getQuiz().getId())
-                .distinct()
-                .count();
+        // QuizService의 정확한 완료된 퀴즈 수 계산 사용 (중복 제거 포함)
+        try {
+            java.util.Map<String, Object> scoreData = quizService.getUserTotalScore(userId);
+            return (Integer) scoreData.get("completedQuizzes");
+        } catch (Exception e) {
+            log.warn("Failed to get completed quizzes from QuizService for user: {}", userId, e);
+            return 0;
+        }
     }
 
     private int calculateTotalMinutesSpent(Long userId) {
@@ -291,13 +292,13 @@ public class DashboardService {
     }
 
     private double calculateAverageScore(Long userId) {
-        // 평균 점수 계산
-        List<UserAnswer> userAnswers = userAnswerRepository.findByUserId(userId);
-        if (userAnswers.isEmpty()) {
+        // QuizService의 정확한 평균 점수 계산 사용 (중복 제거 포함)
+        try {
+            java.util.Map<String, Object> scoreData = quizService.getUserTotalScore(userId);
+            return (Double) scoreData.get("averageScore");
+        } catch (Exception e) {
+            log.warn("Failed to get average score from QuizService for user: {}", userId, e);
             return 0.0;
         }
-        
-        long correctCount = userAnswers.stream().filter(UserAnswer::isCorrect).count();
-        return (double) correctCount / userAnswers.size() * 100;
     }
 }
