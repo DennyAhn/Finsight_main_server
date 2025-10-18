@@ -56,6 +56,7 @@ sequenceDiagram
 |--------|------------|------|
 | `POST` | `/api/quizzes/submit-answer` | 답안 제출 |
 | `POST` | `/api/quizzes/{id}/complete` | 퀴즈 완료 |
+| `POST` | `/api/quizzes/{id}/retry` | 퀴즈 다시풀기 (이전 답변 삭제) |
 | `GET` | `/api/quizzes/{id}` | 퀴즈 정보 조회 |
 
 ### 🏅 뱃지 관련 API
@@ -119,6 +120,29 @@ async function completeQuiz(userId, quizId) {
   console.log('퀴즈 완료:', result);
   
   // 퀴즈 완료 후 뱃지와 징검다리가 자동으로 업데이트됨!
+  return result;
+}
+```
+
+### Step 2-1: 퀴즈 다시풀기 (실패 시)
+```javascript
+// 퀴즈 실패 시 다시풀기 (이전 답변 삭제 후 새로 시작)
+async function retryQuiz(userId, quizId) {
+  const response = await fetch(`/api/quizzes/${quizId}/retry?userId=${userId}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    }
+  });
+  
+  if (!response.ok) {
+    throw new Error('퀴즈 다시풀기 실패');
+  }
+  
+  const result = await response.text();
+  console.log('퀴즈 다시풀기 준비 완료:', result);
+  
+  // 이제 새로 퀴즈를 시작할 수 있습니다!
   return result;
 }
 ```
@@ -202,25 +226,56 @@ async function completeQuizFlow(userId, quizId, levelId, answers) {
     // 2. 퀴즈 완료 (이때 뱃지와 징검다리 자동 업데이트)
     const quizResult = await completeQuiz(userId, quizId);
     
-    // 3. 업데이트된 뱃지 조회
-    const currentBadge = await getCurrentBadge(userId);
-    
-    // 4. 징검다리 진행률 조회
-    const levelProgress = await getLevelProgress(userId, levelId);
-    
-    // 5. UI 업데이트
-    updateBadgeDisplay(currentBadge);
-    updateSteppingStones(levelProgress);
-    showQuizResult(quizResult);
-    
-    return {
-      quizResult,
-      currentBadge,
-      levelProgress
-    };
+    // 3. 퀴즈 결과에 따른 처리
+    if (quizResult.passed) {
+      // 3-1. 통과한 경우: 뱃지와 징검다리 조회
+      const currentBadge = await getCurrentBadge(userId);
+      const levelProgress = await getLevelProgress(userId, levelId);
+      
+      // UI 업데이트
+      updateBadgeDisplay(currentBadge);
+      updateSteppingStones(levelProgress);
+      showQuizResult(quizResult);
+      
+      return {
+        quizResult,
+        currentBadge,
+        levelProgress
+      };
+    } else {
+      // 3-2. 실패한 경우: 다시풀기 옵션 제공
+      showQuizResult(quizResult);
+      showRetryOption(userId, quizId);
+      
+      return {
+        quizResult,
+        needsRetry: true
+      };
+    }
     
   } catch (error) {
     console.error('퀴즈 완료 중 오류:', error);
+    throw error;
+  }
+}
+
+// 다시풀기 플로우
+async function retryQuizFlow(userId, quizId) {
+  try {
+    // 1. 다시풀기 (이전 답변 삭제)
+    await retryQuiz(userId, quizId);
+    
+    // 2. 퀴즈 정보 다시 조회 (새로 시작)
+    const quizInfo = await fetch(`/api/quizzes/${quizId}`).then(res => res.json());
+    
+    // 3. UI 초기화
+    resetQuizUI();
+    showQuizQuestions(quizInfo);
+    
+    return quizInfo;
+    
+  } catch (error) {
+    console.error('다시풀기 중 오류:', error);
     throw error;
   }
 }
@@ -308,7 +363,40 @@ function showQuizResult(result) {
     <h3>${result.passed ? '축하합니다!' : '아쉽습니다!'}</h3>
     <p>${result.message}</p>
     <p>점수: ${result.score}/${result.totalQuestions}</p>
+    <p>통과 기준: 4문제 중 3문제 이상 (75%)</p>
   `;
+}
+
+// 다시풀기 옵션 표시
+function showRetryOption(userId, quizId) {
+  const retryElement = document.getElementById('retry-option');
+  retryElement.innerHTML = `
+    <div class="retry-section">
+      <h4>다시 도전하시겠습니까?</h4>
+      <p>이전 답변이 모두 삭제되고 새로 시작됩니다.</p>
+      <button onclick="startRetry(${userId}, ${quizId})" class="retry-btn">
+        다시풀기
+      </button>
+    </div>
+  `;
+}
+
+// 다시풀기 시작
+async function startRetry(userId, quizId) {
+  try {
+    await retryQuizFlow(userId, quizId);
+  } catch (error) {
+    console.error('다시풀기 시작 실패:', error);
+    alert('다시풀기를 시작할 수 없습니다. 다시 시도해주세요.');
+  }
+}
+
+// 퀴즈 UI 초기화
+function resetQuizUI() {
+  document.getElementById('quiz-result').innerHTML = '';
+  document.getElementById('retry-option').innerHTML = '';
+  // 퀴즈 문제 UI도 초기화
+  document.getElementById('quiz-questions').innerHTML = '';
 }
 ```
 
@@ -320,14 +408,17 @@ function showQuizResult(result) {
 ### 퀴즈 완료 응답
 ```json
 {
-  "quizId": 1,
-  "userId": 908,
   "totalQuestions": 4,
-  "correctAnswers": 4,
+  "correctAnswers": 3,
   "passed": true,
-  "score": 4,
-  "message": "축하합니다! 4문제 중 4문제를 맞혔습니다."
+  "score": 3,
+  "message": "축하합니다! 4문제 중 3문제를 맞혔습니다."
 }
+```
+
+### 퀴즈 다시풀기 응답
+```json
+"퀴즈 다시풀기 준비가 완료되었습니다. 이제 새로 시작할 수 있습니다."
 ```
 
 ### 현재 뱃지 응답
@@ -413,9 +504,13 @@ async function safeApiCall(apiFunction, ...args) {
 - **실시간 반영**: `displayedBadge`와 `steps` 정보가 실시간으로 반영
 - **순서 중요**: 답안 제출 → 퀴즈 완료 → 뱃지 조회 → 징검다리 조회
 
-### 🎯 징검다리 시스템
-- **통과 조건**: 4문제 중 2문제 이상 맞춰야 통과 (50% 이상)
+### 🎯 퀴즈 시스템
+- **통과 조건**: 4문제 중 3문제 이상 맞춰야 통과 (75% 이상)
+- **실패 시**: 다시풀기 API로 이전 답변 삭제 후 새로 시작
 - **완성 조건**: 4문제 모두 완료해야 징검다리 완성
+
+### 🎯 징검다리 시스템
+- **징검다리 통과**: 4문제 중 3문제 이상 맞춰야 징검다리 통과 (75% 이상)
 - **상태별 표시**:
   - ✅ **완료 + 통과**: 체크마크
   - ❌ **완료 + 실패**: X마크  

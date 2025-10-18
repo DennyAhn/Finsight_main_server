@@ -2,7 +2,7 @@ package com.fintech.server.controller;
 
 // import com.fintech.server.dto.UserRequestDto; // 사용하지 않으므로 주석 처리
 // import com.fintech.server.dto.UserResponseDto; // 사용하지 않으므로 주석 처리
-import com.fintech.server.service.UserService;
+// import com.fintech.server.service.UserService; // 사용하지 않으므로 주석 처리
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class UserController {
 
-    private final UserService userService;
+    // private final UserService userService; // 모든 메서드가 주석 처리되어 사용하지 않음
 
     // ====================================================================
     // 아래의 모든 메소드들은 UserService에 해당 기능이 다시 구현될 때까지

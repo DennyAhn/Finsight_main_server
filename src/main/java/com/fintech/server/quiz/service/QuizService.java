@@ -160,12 +160,24 @@ public class QuizService {
                 .filter(UserAnswer::isCorrect)
                 .count();
         int totalQuestions = userAnswers.size();
-        boolean passed = correctAnswers >= (totalQuestions * 0.6); // 60% 이상
+        boolean passed = correctAnswers >= 3; // 3문제 이상 맞춰야 통과 (4문제 기준)
         
-        // 4. UserProgress 저장 (퀴즈 완료 기록)
-        UserProgress userProgress = new UserProgress();
-        userProgress.setUser(user);
-        userProgress.setQuiz(quiz);
+        // 4. UserProgress 저장 (퀴즈 완료 기록) - 중복 방지
+        List<UserProgress> existingProgress = userProgressRepository.findByUserIdAndQuizId(userId, quizId);
+        UserProgress userProgress;
+        
+        if (!existingProgress.isEmpty()) {
+            // 기존 진행 기록이 있으면 업데이트
+            userProgress = existingProgress.get(0); // 가장 최근 기록
+            log.info("기존 UserProgress 업데이트: userId={}, quizId={}", userId, quizId);
+        } else {
+            // 새로운 진행 기록 생성
+            userProgress = new UserProgress();
+            userProgress.setUser(user);
+            userProgress.setQuiz(quiz);
+            log.info("새로운 UserProgress 생성: userId={}, quizId={}", userId, quizId);
+        }
+        
         userProgress.setScore(correctAnswers); // 정답 수 = 점수 (required_quizzes와 동일)
         userProgress.setPassed(passed);
         userProgress.setStartedAt(LocalDateTime.now().minusMinutes(5)); // 대략적 시작 시간
@@ -193,6 +205,39 @@ public class QuizService {
             .score(correctAnswers) // required_quizzes와 동일한 값
             .message(message)
             .build();
+    }
+
+    /**
+     * 퀴즈 다시풀기 메소드 (이전 답변 삭제 후 새로 시작)
+     */
+    @Transactional
+    public void retryQuiz(Long quizId, Long userId) {
+        // 1. 사용자와 퀴즈 존재 확인
+        if (!userRepository.existsById(userId)) {
+            throw new RuntimeException("User not found with id: " + userId);
+        }
+        
+        if (!quizRepository.existsById(quizId)) {
+            throw new RuntimeException("Quiz not found with id: " + quizId);
+        }
+
+        // 2. 해당 퀴즈의 이전 답변들 삭제
+        List<UserAnswer> existingAnswers = userAnswerRepository.findByUserIdAndQuizId(userId, quizId);
+        if (!existingAnswers.isEmpty()) {
+            userAnswerRepository.deleteAll(existingAnswers);
+            log.info("이전 답변 삭제 완료: userId={}, quizId={}, 삭제된 답변 수={}", 
+                    userId, quizId, existingAnswers.size());
+        }
+
+        // 3. 해당 퀴즈의 이전 UserProgress 삭제 (선택사항)
+        List<UserProgress> existingProgress = userProgressRepository.findByUserIdAndQuizId(userId, quizId);
+        if (!existingProgress.isEmpty()) {
+            userProgressRepository.deleteAll(existingProgress);
+            log.info("이전 진행 기록 삭제 완료: userId={}, quizId={}, 삭제된 기록 수={}", 
+                    userId, quizId, existingProgress.size());
+        }
+
+        log.info("퀴즈 다시풀기 준비 완료: userId={}, quizId={}", userId, quizId);
     }
 
     private QuizResponseDto convertToDto(Quiz quiz) {

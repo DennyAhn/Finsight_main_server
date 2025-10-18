@@ -93,4 +93,12 @@ public interface UserProgressRepository extends JpaRepository<UserProgress, Long
     
     @Query("SELECT COUNT(DISTINCT up.quiz.id) FROM UserProgress up WHERE up.user.id = :userId AND up.quiz.level.id = :levelId AND up.passed = true")
     Long countPassedQuizzesByUserIdAndLevelId(@Param("userId") Long userId, @Param("levelId") Long levelId);
+    
+    /**
+     * 특정 사용자의 특정 퀴즈 진행률 조회 (다시풀기용)
+     */
+    @Query("SELECT up FROM UserProgress up " +
+           "WHERE up.user.id = :userId AND up.quiz.id = :quizId " +
+           "ORDER BY up.createdAt DESC")
+    List<UserProgress> findByUserIdAndQuizId(@Param("userId") Long userId, @Param("quizId") Long quizId);
 }

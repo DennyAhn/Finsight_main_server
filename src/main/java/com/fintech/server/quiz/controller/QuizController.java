@@ -66,6 +66,25 @@ public class QuizController {
             return ResponseEntity.internalServerError().body("Error completing quiz: " + e.getMessage());
         }
     }
+
+    /**
+     * 퀴즈 다시풀기 API (이전 답변 삭제 후 새로 시작)
+     */
+    @PostMapping("/{id}/retry")
+    public ResponseEntity<?> retryQuiz(
+            @PathVariable("id") Long quizId,
+            @RequestParam("userId") Long userId) {
+        try {
+            quizService.retryQuiz(quizId, userId);
+            return ResponseEntity.ok().body("퀴즈 다시풀기 준비가 완료되었습니다. 이제 새로 시작할 수 있습니다.");
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body("Invalid request: " + e.getMessage());
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body("Error retrying quiz: " + e.getMessage());
+        }
+    }
 }
 
 

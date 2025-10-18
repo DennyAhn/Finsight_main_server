@@ -81,7 +81,7 @@ public class LevelService {
 
         // 징검다리 정보 생성
         List<StepProgressDto> steps = createStepProgress(levelId, userId);
-        boolean isStepPassed = correctAnswers >= 2; // 50% 이상 통과 (4문제 중 2문제 이상)
+        boolean isStepPassed = correctAnswers >= 3; // 75% 이상 통과 (4문제 중 3문제 이상)
         int currentStep = calculateCurrentStep(completedQuizzes);
 
         // 통과/실패 통계

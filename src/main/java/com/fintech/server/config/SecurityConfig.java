@@ -51,7 +51,7 @@ public class SecurityConfig {
             )
             .headers(headers -> headers
                 .frameOptions(frameOptions -> frameOptions.sameOrigin())
-                .contentTypeOptions(contentTypeOptions -> contentTypeOptions.and())
+                .contentTypeOptions(contentTypeOptions -> {})
                 .httpStrictTransportSecurity(hstsConfig -> hstsConfig.disable())
             );
 
