@@ -2,6 +2,12 @@
 
 > 사용자 맞춤형 금융 지식 학습을 위한 종합 교육 플랫폼 백엔드 시스템
 
+## 👥 팀 프로젝트
+
+- **메인 서버 (Backend)**: [@DennyAhn/Finsight_main_server](https://github.com/DennyAhn/Finsight_main_server) - Spring Boot 기반 REST API 서버
+- **기사 도우미 AI**: [@asd1702/fin_sight_server](https://github.com/asd1702/fin_sight_server) - FastAPI 기반 뉴스 분석 AI 서버
+- **프론트엔드**: [@khs1111/finsight-c](https://github.com/khs1111/finsight-c) - React 기반 사용자 인터페이스
+
 [![Java](https://img.shields.io/badge/Java-17-007396?style=flat&logo=java)](https://www.oracle.com/java/)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2.0-6DB33F?style=flat&logo=spring-boot)](https://spring.io/projects/spring-boot)
 [![MySQL](https://img.shields.io/badge/MySQL-8.0-4479A1?style=flat&logo=mysql)](https://www.mysql.com/)
