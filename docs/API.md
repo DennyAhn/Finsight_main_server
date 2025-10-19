@@ -314,6 +314,28 @@ GET /api/progress/user/me/summary
 GET /api/wrong-notes?userId={userId}&page=0&size=20
 ```
 
+<details>
+<summary><strong>📋 응답 예시</strong></summary>
+
+```json
+{
+  "wrongNotes": [],
+  "statistics": {
+    "totalCount": 0,
+    "unresolvedCount": 0,
+    "resolvedCount": 0,
+    "needReviewCount": 0
+  },
+  "subsectorStatistics": [],
+  "levelStatistics": [],
+  "totalPages": 0,
+  "currentPage": 0,
+  "pageSize": 20
+}
+```
+
+</details>
+
 #### 특정 오답 노트 조회
 ```http
 GET /api/wrong-notes/{noteId}?userId={userId}
@@ -331,6 +353,25 @@ Content-Type: text/plain
 ```http
 PUT /api/wrong-notes/{noteId}/toggle-resolved?userId={userId}
 ```
+
+#### 오답 노트 통계 조회
+```http
+GET /api/wrong-notes/statistics?userId={userId}
+```
+
+<details>
+<summary><strong>📋 응답 예시</strong></summary>
+
+```json
+{
+  "totalCount": 0,
+  "unresolvedCount": 0,
+  "resolvedCount": 0,
+  "needReviewCount": 0
+}
+```
+
+</details>
 
 #### 오답 노트 삭제
 ```http
@@ -821,6 +862,62 @@ GET /api/wrong-notes/statistics?userId={userId}
 ```http
 GET /api/admin/wrong-notes/statistics/overall
 ```
+
+<details>
+<summary><strong>📋 응답 예시</strong></summary>
+
+```json
+{
+  "totalWrongNotesCount": 204,
+  "totalUniqueUsersCount": 71,
+  "totalQuestionsCount": null,
+  "overallWrongAnswerRate": null,
+  "topWrongQuestions": [
+    {
+      "questionId": 4,
+      "questionText": "아래 기사 내용에 따라 C와 D 금융기관의 금융권 구분과 소상공인이 안정성과 비용을 중시할 때 유리한 선택은 무엇인가?",
+      "quizTitle": "금융권 초급자 퀴즈",
+      "sectorName": "은행",
+      "subsectorName": "금융권",
+      "wrongCount": 19,
+      "wrongAnswerRate": null
+    },
+    {
+      "questionId": 1,
+      "questionText": "은행의 기본적인 역할 중 '여·수신'과 '지급결제'를 주로 수행하는 금융기관은 무엇인가?",
+      "quizTitle": "금융권 초급자 퀴즈",
+      "sectorName": "은행",
+      "subsectorName": "금융권",
+      "wrongCount": 17,
+      "wrongAnswerRate": null
+    }
+  ],
+  "sectorStatistics": [
+    {
+      "sectorId": 1,
+      "sectorName": "은행",
+      "sectorSlug": "banking",
+      "totalWrongCount": 134,
+      "uniqueUsersCount": 48,
+      "totalQuestionsCount": null,
+      "wrongAnswerRate": null,
+      "subsectors": null
+    },
+    {
+      "sectorId": 2,
+      "sectorName": "카드",
+      "sectorSlug": "card",
+      "totalWrongCount": 46,
+      "uniqueUsersCount": 17,
+      "totalQuestionsCount": null,
+      "wrongAnswerRate": null,
+      "subsectors": null
+    }
+  ]
+}
+```
+
+</details>
 
 #### 섹터별 오답 노트 통계
 ```http
