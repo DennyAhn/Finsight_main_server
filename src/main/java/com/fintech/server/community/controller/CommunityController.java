@@ -133,9 +133,12 @@ public class CommunityController {
      * 게시글 좋아요 토글
      */
     @PostMapping("/{postId}/like")
-    public ResponseEntity<LikeResponseDto> toggleLike(@PathVariable Long postId, HttpServletRequest request) {
+    public ResponseEntity<LikeResponseDto> toggleLike(
+            @PathVariable Long postId, 
+            @RequestParam(required = false) Long userId,
+            HttpServletRequest request) {
         try {
-            Long currentUserId = getCurrentUserId(request);
+            Long currentUserId = userId != null ? userId : getCurrentUserId(request);
             LikeResponseDto response = postLikeService.toggleLike(postId, currentUserId);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
@@ -151,9 +154,12 @@ public class CommunityController {
      * 게시글 좋아요 상태 확인
      */
     @GetMapping("/{postId}/like")
-    public ResponseEntity<LikeResponseDto> getLikeStatus(@PathVariable Long postId, HttpServletRequest request) {
+    public ResponseEntity<LikeResponseDto> getLikeStatus(
+            @PathVariable Long postId, 
+            @RequestParam(required = false) Long userId,
+            HttpServletRequest request) {
         try {
-            Long currentUserId = getCurrentUserId(request);
+            Long currentUserId = userId != null ? userId : getCurrentUserId(request);
             boolean isLiked = postLikeService.isLikedByUser(postId, currentUserId);
             long likeCount = postLikeService.getLikeCount(postId);
             
