@@ -498,3 +498,220 @@ public ResponseEntity<PostResponseDto> getPost(@PathVariable Long postId, HttpSe
 - **서브섹터별**과 **레벨별** 통계는 **같은 API**에서 한 번에 조회
 - **정렬**: 서브섹터 ID 순서대로, 레벨 ID 순서대로 (오름차순)
 - **필터**: `all`, `unresolved`, `resolved`, `needreview`
+
+---
+
+## 💬 프론트엔드 개발자를 위한 커뮤니티 댓글 API 가이드
+
+### **1. 댓글 작성 API**
+
+**엔드포인트:** `POST /api/community/posts/{postId}/comments`
+
+**파라미터:**
+- `postId` (경로변수): 게시글 ID
+- `userId` (쿼리파라미터, 선택): 사용자 ID (JWT 토큰이 있으면 생략 가능)
+
+**요청 Body:**
+```json
+{
+  "body": "댓글 내용입니다.",
+  "parentCommentId": null  // 답글인 경우 부모 댓글 ID, 일반 댓글이면 null
+}
+```
+
+**응답 예시:**
+```json
+{
+  "id": 123,
+  "author": {
+    "id": 63,
+    "nickname": "사용자닉네임",
+    "badge": {
+      "name": "브론즈",
+      "iconUrl": "https://example.com/bronze.png"
+    }
+  },
+  "body": "댓글 내용입니다.",
+  "parentCommentId": null,
+  "replies": [],
+  "createdAt": "2024-01-15T10:30:00"
+}
+```
+
+---
+
+### **2. 게시글 댓글 목록 조회 API**
+
+**엔드포인트:** `GET /api/community/posts/{postId}/comments`
+
+**파라미터:**
+- `postId` (경로변수): 게시글 ID
+
+**응답 예시:**
+```json
+[
+  {
+    "id": 123,
+    "author": {
+      "id": 63,
+      "nickname": "사용자닉네임",
+      "badge": {
+        "name": "브론즈",
+        "iconUrl": "https://example.com/bronze.png"
+      }
+    },
+    "body": "첫 번째 댓글입니다.",
+    "parentCommentId": null,
+    "replies": [
+      {
+        "id": 124,
+        "author": {
+          "id": 64,
+          "nickname": "다른사용자",
+          "badge": {
+            "name": "실버",
+            "iconUrl": "https://example.com/silver.png"
+          }
+        },
+        "body": "답글입니다.",
+        "parentCommentId": 123,
+        "replies": [],
+        "createdAt": "2024-01-15T11:00:00"
+      }
+    ],
+    "createdAt": "2024-01-15T10:30:00"
+  },
+  {
+    "id": 125,
+    "author": {
+      "id": 65,
+      "nickname": "또다른사용자",
+      "badge": {
+        "name": "골드",
+        "iconUrl": "https://example.com/gold.png"
+      }
+    },
+    "body": "두 번째 댓글입니다.",
+    "parentCommentId": null,
+    "replies": [],
+    "createdAt": "2024-01-15T12:00:00"
+  }
+]
+```
+
+---
+
+### **3. 댓글 수정 API**
+
+**엔드포인트:** `PUT /api/community/posts/comments/{commentId}`
+
+**파라미터:**
+- `commentId` (경로변수): 댓글 ID
+
+**요청 Body:**
+```json
+{
+  "body": "수정된 댓글 내용입니다."
+}
+```
+
+---
+
+### **4. 댓글 삭제 API**
+
+**엔드포인트:** `DELETE /api/community/posts/comments/{commentId}`
+
+**파라미터:**
+- `commentId` (경로변수): 댓글 ID
+
+**응답:** `"댓글이 삭제되었습니다."`
+
+---
+
+## 🚀 **프론트엔드 구현 예시 (JavaScript)**
+
+### **댓글 작성**
+```javascript
+async function createComment(postId, content, userId = null, parentCommentId = null) {
+  const response = await fetch(`/api/community/posts/${postId}/comments?userId=${userId}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      body: content,
+      parentCommentId: parentCommentId
+    })
+  });
+  
+  if (!response.ok) {
+    throw new Error('댓글 작성 실패');
+  }
+  
+  return await response.json();
+}
+```
+
+### **댓글 목록 조회**
+```javascript
+async function getComments(postId) {
+  const response = await fetch(`/api/community/posts/${postId}/comments`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    }
+  });
+  
+  if (!response.ok) {
+    throw new Error('댓글 목록 조회 실패');
+  }
+  
+  return await response.json();
+}
+```
+
+### **댓글 수정**
+```javascript
+async function updateComment(commentId, content) {
+  const response = await fetch(`/api/community/posts/comments/${commentId}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      body: content
+    })
+  });
+  
+  if (!response.ok) {
+    throw new Error('댓글 수정 실패');
+  }
+  
+  return await response.json();
+}
+```
+
+### **댓글 삭제**
+```javascript
+async function deleteComment(commentId) {
+  const response = await fetch(`/api/community/posts/comments/${commentId}`, {
+    method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json',
+    }
+  });
+  
+  if (!response.ok) {
+    throw new Error('댓글 삭제 실패');
+  }
+  
+  return await response.text();
+}
+```
+
+## 🔍 **핵심 포인트**
+
+- **계층 구조**: 댓글과 답글을 구분하여 표시
+- **사용자 정보**: 작성자 닉네임과 배지 정보 포함
+- **실시간 업데이트**: 댓글 작성/수정/삭제 후 목록 새로고침
+- **권한 관리**: 본인 댓글만 수정/삭제 가능

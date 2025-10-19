@@ -23,4 +23,10 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
      */
     @Query("SELECT a FROM Account a JOIN FETCH a.user u WHERE u.isGuest = true AND a.expiresAt < :now")
     List<Account> findExpiredGuestAccounts(@Param("now") LocalDateTime now);
+    
+    /**
+     * 최근 생성된 유효한 게스트 계정 조회 (24시간 내, 만료되지 않은 계정)
+     */
+    @Query("SELECT a FROM Account a JOIN FETCH a.user u WHERE u.isGuest = true AND a.expiresAt > :now AND a.createdAt > :recentTime ORDER BY a.createdAt DESC")
+    List<Account> findRecentValidGuestAccounts(@Param("now") LocalDateTime now, @Param("recentTime") LocalDateTime recentTime);
 }

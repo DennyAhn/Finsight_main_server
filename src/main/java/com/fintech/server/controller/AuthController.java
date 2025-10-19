@@ -11,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -129,10 +130,20 @@ public class AuthController {
      * - 게스트 사용자 생성 실패 시
      */
     @PostMapping("/guest")
-    public ResponseEntity<?> guestLogin() {
+    public ResponseEntity<?> guestLogin(@RequestParam(required = false) Long userId) {
         try {
-            TokenResponseDto response = authService.createGuestUserAndLogin();
-            log.info("게스트 로그인 성공: userId={}", response.getUserId());
+            TokenResponseDto response;
+            
+            if (userId != null) {
+                // 기존 사용자 ID로 재사용 시도
+                response = authService.reuseGuestAccount(userId);
+                log.info("기존 게스트 계정 재사용: userId={}", userId);
+            } else {
+                // 새 게스트 계정 생성
+                response = authService.createGuestUserAndLogin();
+                log.info("새 게스트 로그인 성공: userId={}", response.getUserId());
+            }
+            
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
             log.error("게스트 로그인 실패", e);

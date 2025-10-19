@@ -14,6 +14,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -27,30 +29,41 @@ public class AuthService {
     private final JwtUtil jwtUtil;
 
     /**
-     * 게스트 사용자 생성 및 로그인
+     * 게스트 사용자 생성 및 로그인 (기존 계정 재사용 로직 포함)
      */
     @Transactional
     public TokenResponseDto createGuestUserAndLogin() {
         try {
-            // 1. 게스트 사용자 생성
-            User guestUser = createGuestUser();
+            // 1. 기존 유효한 게스트 계정이 있는지 확인 (최근 24시간 내)
+            Optional<Account> existingAccount = findRecentValidGuestAccount();
             
-            // 2. 게스트 계정 생성
-            Account guestAccount = createGuestAccount(guestUser);
+            if (existingAccount.isPresent()) {
+                // 기존 계정 재사용 - 같은 닉네임 유지
+                Account account = existingAccount.get();
+                User user = account.getUser();
+                
+                // 만료 시간 연장 (12시간 추가)
+                account.setExpiresAt(LocalDateTime.now().plusHours(12));
+                account.setLastLoginAt(LocalDateTime.now());
+                accountRepository.save(account);
+                
+                // JWT 토큰 생성
+                String token = jwtUtil.generateToken(user.getId());
+                
+                log.info("기존 게스트 계정 재사용: userId={}, nickname={}, accountId={}", 
+                        user.getId(), user.getNickname(), account.getId());
+                
+                return TokenResponseDto.builder()
+                        .accessToken(token)
+                        .userId(user.getId())
+                        .build();
+            }
             
-            // 3. JWT 토큰 생성
-            String token = jwtUtil.generateToken(guestUser.getId());
-            
-            log.info("게스트 사용자 생성 완료: userId={}, accountId={}", 
-                    guestUser.getId(), guestAccount.getId());
-            
-            return TokenResponseDto.builder()
-                    .accessToken(token)
-                    .userId(guestUser.getId())
-                    .build();
+            // 2. 기존 계정이 없으면 새로 생성
+            return createNewGuestAccount();
                     
         } catch (Exception e) {
-            log.error("게스트 사용자 생성 실패", e);
+            log.error("게스트 사용자 생성/로그인 실패", e);
             throw new RuntimeException("게스트 사용자 생성에 실패했습니다: " + e.getMessage());
         }
     }
@@ -128,5 +141,94 @@ public class AuthService {
         
         String jwt = token.substring(7); // "Bearer " 제거
         return jwtUtil.validateToken(jwt);
+    }
+
+    /**
+     * 최근 유효한 게스트 계정 조회 (24시간 내, 만료되지 않은 계정)
+     */
+    private Optional<Account> findRecentValidGuestAccount() {
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime recentTime = now.minusHours(24); // 24시간 전
+        
+        List<Account> recentAccounts = accountRepository.findRecentValidGuestAccounts(now, recentTime);
+        
+        if (!recentAccounts.isEmpty()) {
+            // 가장 최근 계정 반환
+            return Optional.of(recentAccounts.get(0));
+        }
+        
+        return Optional.empty();
+    }
+
+    /**
+     * 기존 사용자 ID로 게스트 계정 재사용
+     */
+    @Transactional
+    public TokenResponseDto reuseGuestAccount(Long userId) {
+        try {
+            // 1. 사용자 존재 확인
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다: " + userId));
+            
+            // 2. 게스트 사용자인지 확인
+            if (!user.getIsGuest()) {
+                throw new RuntimeException("게스트 사용자가 아닙니다: " + userId);
+            }
+            
+            // 3. 계정 정보 조회
+            Account account = accountRepository.findByEmail(user.getEmail())
+                    .orElseThrow(() -> new RuntimeException("계정을 찾을 수 없습니다: " + userId));
+            
+            // 4. 계정이 만료되었는지 확인
+            if (account.getExpiresAt().isBefore(LocalDateTime.now())) {
+                throw new RuntimeException("계정이 만료되었습니다: " + userId);
+            }
+            
+            // 5. 만료 시간 연장 (12시간 추가)
+            account.setExpiresAt(LocalDateTime.now().plusHours(12));
+            account.setLastLoginAt(LocalDateTime.now());
+            accountRepository.save(account);
+            
+            // 6. JWT 토큰 생성
+            String token = jwtUtil.generateToken(user.getId());
+            
+            log.info("기존 게스트 계정 재사용 완료: userId={}, nickname={}, accountId={}", 
+                    user.getId(), user.getNickname(), account.getId());
+            
+            return TokenResponseDto.builder()
+                    .accessToken(token)
+                    .userId(user.getId())
+                    .build();
+                    
+        } catch (RuntimeException e) {
+            // 계정 재사용 실패 시 새 계정 생성
+            log.warn("기존 계정 재사용 실패, 새 계정 생성: userId={}, error={}", userId, e.getMessage());
+            return createNewGuestAccount();
+        } catch (Exception e) {
+            log.error("기존 게스트 계정 재사용 중 오류 발생: userId={}", userId, e);
+            throw new RuntimeException("기존 게스트 계정 재사용에 실패했습니다: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 새로운 게스트 계정 생성 및 로그인
+     */
+    private TokenResponseDto createNewGuestAccount() {
+        // 1. 게스트 사용자 생성
+        User guestUser = createGuestUser();
+        
+        // 2. 게스트 계정 생성
+        Account guestAccount = createGuestAccount(guestUser);
+        
+        // 3. JWT 토큰 생성
+        String token = jwtUtil.generateToken(guestUser.getId());
+        
+        log.info("새 게스트 사용자 생성 완료: userId={}, nickname={}, accountId={}", 
+                guestUser.getId(), guestUser.getNickname(), guestAccount.getId());
+        
+        return TokenResponseDto.builder()
+                .accessToken(token)
+                .userId(guestUser.getId())
+                .build();
     }
 }
