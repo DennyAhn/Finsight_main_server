@@ -25,7 +25,7 @@ services:
       # JPA 설정
       SPRING_JPA_HIBERNATE_DDL_AUTO: validate
       SPRING_JPA_SHOW_SQL: false
-      SPRING_JPA_DATABASE_PLATFORM: org.hibernate.dialect.MySQL8Dialect
+      SPRING_JPA_DATABASE_PLATFORM: org.hibernate.dialect.MySQLDialect
       
       # 서버 설정
       SERVER_PORT: 8080

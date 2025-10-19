@@ -52,28 +52,4 @@ spring:
     properties:
       hibernate:
         format_sql: true
-    database-platform: org.hibernate.dialect.MySQL8Dialect
-
----
-spring:
-  config:
-    activate:
-      on-profile: prod
-  
-  datasource:
-    url: jdbc:mysql://localhost:3306/fintech_db
-    driver-class-name: com.mysql.cj.jdbc.Driver
-    username: ${DB_USERNAME:fintech_user}
-    password: ${DB_PASSWORD:fintech_password}
-    hikari:
-      maximum-pool-size: 10
-      minimum-idle: 5
-      connection-timeout: 30000
-      idle-timeout: 600000
-      max-lifetime: 1800000
-      leak-detection-threshold: 60000
-  
-  jpa:
-    hibernate:
-      ddl-auto: validate
-    show-sql: false
+    database-platform: org.hibernate.dialect.MySQLDialect

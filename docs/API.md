@@ -81,10 +81,29 @@ Content-Type: application/json
 }
 ```
 
-#### 게스트 로그인 (24시간 임시 계정)
+#### 게스트 로그인 (다중 사용자 지원)
 ```http
+# 새 게스트 계정 생성
 POST /api/auth/guest
+
+# 기존 게스트 계정 재사용 (닉네임 유지)
+POST /api/auth/guest?userId={userId}
 ```
+
+**응답 예시:**
+```json
+{
+  "accessToken": "eyJhbGciOiJIUzI1NiJ9...",
+  "userId": 123
+}
+```
+
+**특징:**
+- ✅ **다중 사용자 지원**: 각 브라우저별 독립적인 계정 관리
+- ✅ **닉네임 일관성**: 다른 서버 갔다가 돌아와도 같은 닉네임 유지
+- ✅ **자동 계정 재사용**: 기존 계정이 있으면 자동으로 재사용
+- ✅ **만료 시간 연장**: 사용할 때마다 12시간씩 연장
+- ✅ **에러 처리**: 재사용 실패 시 자동으로 새 계정 생성
 
 ---
 
@@ -278,6 +297,7 @@ GET /api/wrong-notes/statistics?userId={userId}
 - **JWT 토큰**: `Authorization: Bearer {token}`
 - **개발 편의**: 대부분 API에서 `userId` 파라미터로 접근 가능
 
+
 ### CORS 설정
 - **허용 오리진**: 모든 도메인
 - **허용 메서드**: GET, POST, PUT, DELETE, OPTIONS
@@ -349,6 +369,8 @@ ENTRYPOINT ["java", "-jar", "/app.jar"]
 - ✅ **6단계 배지 시스템** 완성
 - ✅ **오답 노트 관리 시스템** 구축
 - ✅ **커뮤니티 기능** 추가
+- ✅ **다중 사용자 지원 게스트 로그인** 구현
+- ✅ **닉네임 일관성 보장** 시스템
 
 ### 기술적 성과
 - 🏗️ **계층적 아키텍처**: Controller → Service → Repository 패턴
@@ -367,7 +389,7 @@ ENTRYPOINT ["java", "-jar", "/app.jar"]
 
 ---
 
-**API 버전**: 1.3.0  
+**API 버전**: 1.4.0  
 **최종 업데이트**: 2025-01-15  
 **개발 기간**: 2024.12 ~ 2025.01  
 **개발자**: Finsight Development Team

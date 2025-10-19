@@ -715,3 +715,187 @@ async function deleteComment(commentId) {
 - **사용자 정보**: 작성자 닉네임과 배지 정보 포함
 - **실시간 업데이트**: 댓글 작성/수정/삭제 후 목록 새로고침
 - **권한 관리**: 본인 댓글만 수정/삭제 가능
+
+---
+
+# 🎮 **프론트엔드 개발자를 위한 게스트 로그인 구현 가이드**
+
+## 📋 **개요**
+
+다중 사용자 환경에서 게스트 로그인 시 닉네임 일관성을 보장하는 프론트엔드 구현 가이드입니다.
+
+## 🚀 **기본 구현 (권장)**
+
+```javascript
+// 게스트 로그인 처리
+const handleGuestLogin = async () => {
+    try {
+        // 1. 기존 사용자 ID 확인
+        let userId = localStorage.getItem('guestUserId');
+        
+        let response;
+        if (userId) {
+            // 2. 기존 사용자 ID로 재사용 시도
+            response = await fetch(`/api/auth/guest?userId=${userId}`, {
+                method: 'POST'
+            });
+        } else {
+            // 3. 새 게스트 로그인
+            response = await fetch('/api/auth/guest', {
+                method: 'POST'
+            });
+        }
+        
+        if (!response.ok) {
+            throw new Error('게스트 로그인 실패');
+        }
+        
+        const data = await response.json();
+        
+        // 4. 사용자 ID와 토큰 저장
+        localStorage.setItem('guestUserId', data.userId);
+        localStorage.setItem('accessToken', data.accessToken);
+        
+        return data;
+    } catch (error) {
+        console.error('게스트 로그인 오류:', error);
+        throw error;
+    }
+};
+```
+
+## 🛠️ **고급 구현 (에러 처리 포함)**
+
+```javascript
+// 게스트 로그인 처리 (에러 처리 포함)
+const handleGuestLogin = async () => {
+    try {
+        let userId = localStorage.getItem('guestUserId');
+        
+        if (userId) {
+            try {
+                // 기존 계정 재사용 시도
+                const response = await fetch(`/api/auth/guest?userId=${userId}`, {
+                    method: 'POST'
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    localStorage.setItem('accessToken', data.accessToken);
+                    return data;
+                }
+            } catch (error) {
+                console.warn('기존 계정 재사용 실패, 새 계정 생성:', error);
+                // 기존 사용자 ID 제거
+                localStorage.removeItem('guestUserId');
+            }
+        }
+        
+        // 새 게스트 로그인
+        const response = await fetch('/api/auth/guest', {
+            method: 'POST'
+        });
+        
+        if (!response.ok) {
+            throw new Error('게스트 로그인 실패');
+        }
+        
+        const data = await response.json();
+        
+        // 사용자 ID와 토큰 저장
+        localStorage.setItem('guestUserId', data.userId);
+        localStorage.setItem('accessToken', data.accessToken);
+        
+        return data;
+    } catch (error) {
+        console.error('게스트 로그인 오류:', error);
+        throw error;
+    }
+};
+```
+
+## 💡 **사용 예시**
+
+```javascript
+// 프로필 페이지 진입 시
+const initProfile = async () => {
+    try {
+        const loginData = await handleGuestLogin();
+        console.log('로그인 성공:', loginData);
+        
+        // 프로필 정보 표시
+        displayProfile(loginData.userId);
+    } catch (error) {
+        console.error('프로필 초기화 실패:', error);
+    }
+};
+
+// 대시보드 페이지 진입 시
+const initDashboard = async () => {
+    try {
+        const loginData = await handleGuestLogin();
+        
+        // 대시보드 데이터 로드
+        const dashboardData = await fetch(`/api/dashboard?userId=${loginData.userId}`);
+        const data = await dashboardData.json();
+        
+        // UI 업데이트
+        updateDashboard(data);
+    } catch (error) {
+        console.error('대시보드 초기화 실패:', error);
+    }
+};
+```
+
+## 🔍 **핵심 포인트**
+
+### **1. 자동 계정 재사용**
+- 같은 브라우저에서 같은 닉네임 유지
+- `localStorage.getItem('guestUserId')`로 기존 사용자 ID 확인
+
+### **2. 다중 사용자 지원**
+- 다른 브라우저는 독립적인 계정
+- 각 브라우저별로 `localStorage`에 별도 저장
+
+### **3. 에러 처리**
+- 기존 계정 재사용 실패 시 자동으로 새 계정 생성
+- 네트워크 오류 시 적절한 에러 메시지 표시
+
+### **4. 간단한 구현**
+- 기존 코드에 최소한의 수정만 필요
+- `localStorage`만 사용하여 상태 관리
+
+## 🎯 **동작 시나리오**
+
+### **시나리오 1: 첫 방문**
+1. `localStorage`에 `guestUserId` 없음
+2. `POST /api/auth/guest` 호출
+3. 새 계정 생성 ("호랑이" 닉네임)
+4. `localStorage`에 `userId` 저장
+
+### **시나리오 2: 재방문**
+1. `localStorage`에서 `guestUserId` 확인
+2. `POST /api/auth/guest?userId=123` 호출
+3. 기존 계정 재사용 ("호랑이" 닉네임 유지)
+4. 토큰만 갱신
+
+### **시나리오 3: 계정 만료**
+1. 기존 계정 재사용 시도
+2. 서버에서 만료된 계정 감지
+3. 자동으로 새 계정 생성
+4. 새로운 닉네임으로 계속 진행
+
+## ⚠️ **주의사항**
+
+1. **localStorage 사용**: 브라우저별로 독립적이므로 다중 사용자 지원
+2. **에러 처리 필수**: 네트워크 오류나 서버 오류 시 대응
+3. **토큰 갱신**: 기존 계정 재사용 시 토큰도 함께 갱신
+4. **사용자 ID 저장**: `userId`를 `localStorage`에 저장하여 재사용
+
+## 🚀 **결과**
+
+이 구현을 통해:
+- ✅ **닉네임 일관성**: 다른 서버 갔다가 돌아와도 같은 닉네임 유지
+- ✅ **다중 사용자 지원**: 각 브라우저별로 독립적인 계정 관리
+- ✅ **자동 복구**: 계정 재사용 실패 시 자동으로 새 계정 생성
+- ✅ **사용자 경험**: 끊김 없는 게스트 로그인 경험
