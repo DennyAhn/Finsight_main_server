@@ -52,8 +52,8 @@ public class LevelController {
             @PathVariable("id") Long levelId,
             @RequestParam("userId") Long userId) {
         try {
-            // 레벨 정보를 먼저 가져와서 서브섹터 ID를 얻음
-            Level level = levelRepository.findById(levelId)
+            // 레벨과 서브섹터를 함께 조회 (JOIN FETCH 사용하여 LazyInitializationException 방지)
+            Level level = levelRepository.findByIdWithSubsector(levelId)
                     .orElseThrow(() -> new RuntimeException("Level not found with id: " + levelId));
             LevelProgressDto progress = levelService.getLevelProgress(levelId, userId, level.getSubsector().getId());
             log.info("Level progress retrieved: levelId={}, userId={}, status={}", 
@@ -136,8 +136,8 @@ public class LevelController {
             @PathVariable("id") Long levelId,
             @RequestParam("userId") Long userId) {
         try {
-            // 레벨 시작 로직 (현재는 단순히 진행 상황 조회)
-            Level level = levelRepository.findById(levelId)
+            // 레벨과 서브섹터를 함께 조회 (JOIN FETCH 사용하여 LazyInitializationException 방지)
+            Level level = levelRepository.findByIdWithSubsector(levelId)
                     .orElseThrow(() -> new RuntimeException("Level not found with id: " + levelId));
             levelService.getLevelProgress(levelId, userId, level.getSubsector().getId());
             
