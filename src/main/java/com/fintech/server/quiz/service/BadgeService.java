@@ -32,6 +32,16 @@ public class BadgeService {
     private final UserRepository userRepository;
 
     /**
+     * 사용자의 벳지 진행 상황 업데이트 (필요시에만)
+     */
+    @Transactional
+    public void updateUserBadgeProgressIfNeeded(Long userId) {
+        // 마지막 업데이트 시간 확인 (예: 1시간마다 업데이트)
+        // 여기서는 간단히 항상 업데이트하도록 구현
+        updateUserBadgeProgress(userId);
+    }
+
+    /**
      * 사용자의 벳지 진행 상황 업데이트 및 displayedBadge 자동 업데이트
      */
     @Transactional
@@ -157,6 +167,13 @@ public class BadgeService {
         
         // 두 조건 중 더 낮은 진행률을 반환
         return Math.min(quizProgress, answerProgress);
+    }
+
+    /**
+     * 벳지 개수 조회
+     */
+    public long getBadgeCount() {
+        return badgeRepository.count();
     }
 
     /**

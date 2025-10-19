@@ -36,7 +36,8 @@ public class UserProgressController {
             /* @AuthenticationPrincipal UserDetailsImpl userDetails */) {
         
         // Long userId = userDetails.getUserId(); // 실제 운영 시에는 인증 객체에서 ID를 가져옵니다.
-        Long userId = 1L; // 임시 테스트용 ID
+        // 임시로 게스트 사용자 ID 사용 (실제로는 JWT 토큰에서 추출해야 함)
+        Long userId = 1330L; // 게스트 사용자 ID
         log.info("사용자 {}의 전체 진행률 조회 요청", userId);
         
         // [예외 처리 개선] 서비스 계층이나 @ControllerAdvice에서 예외를 처리하는 것이 좋습니다.
@@ -97,7 +98,8 @@ public class UserProgressController {
             /* @AuthenticationPrincipal UserDetailsImpl userDetails */) {
         
         // Long userId = userDetails.getUserId();
-        Long userId = 1L; // 임시 테스트용 ID
+        // 임시로 게스트 사용자 ID 사용 (실제로는 JWT 토큰에서 추출해야 함)
+        Long userId = 1330L; // 게스트 사용자 ID
         log.info("사용자 {}의 진행률 요약 조회 요청", userId);
         
         // [성능 개선] 이 로직은 서비스 계층 내부에서 DB 쿼리로 처리하는 것이 훨씬 효율적입니다.

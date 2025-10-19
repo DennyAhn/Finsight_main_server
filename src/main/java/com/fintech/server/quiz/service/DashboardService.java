@@ -76,11 +76,13 @@ public class DashboardService {
         String currentLevelTitle = "레벨 없음";
         Integer currentLevelNumber = 0;
         
-        // 벳지 데이터 초기화 (개발용)
-        badgeService.initializeBadges();
+        // 벳지 데이터 초기화는 한 번만 실행 (이미 초기화되었는지 확인)
+        if (badgeService.getBadgeCount() == 0) {
+            badgeService.initializeBadges();
+        }
         
-        // 사용자의 벳지 진행 상황 업데이트
-        badgeService.updateUserBadgeProgress(userId);
+        // 사용자의 벳지 진행 상황 업데이트 (필요시에만)
+        badgeService.updateUserBadgeProgressIfNeeded(userId);
         
         // 현재 벳지 레벨 조회
         Badge currentBadge = badgeService.getCurrentBadgeLevel(userId);
