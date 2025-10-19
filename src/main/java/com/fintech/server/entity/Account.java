@@ -42,6 +42,9 @@ public class Account {
     @Column(name = "expires_at")
     private LocalDateTime expiresAt;
 
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
     // DB의 ENUM 타입과 매핑
     @Enumerated(EnumType.STRING)
     private AccountStatus status = AccountStatus.active;
@@ -49,6 +52,13 @@ public class Account {
     // DB의 ENUM 타입에 해당하는 Java Enum
     public enum AccountStatus {
         active, disabled, deleted
+    }
+
+    @PrePersist
+    protected void onCreate() {
+        if (createdAt == null) {
+            createdAt = LocalDateTime.now();
+        }
     }
 }
 
