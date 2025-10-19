@@ -34,32 +34,32 @@ public class AuthService {
     @Transactional
     public TokenResponseDto createGuestUserAndLogin() {
         try {
-            // 1. 기존 유효한 게스트 계정이 있는지 확인 (최근 24시간 내)
-            Optional<Account> existingAccount = findRecentValidGuestAccount();
+            // 1. 기존 유효한 게스트 계정이 있는지 확인 (최근 24시간 내) - 임시 주석처리
+            // Optional<Account> existingAccount = findRecentValidGuestAccount();
             
-            if (existingAccount.isPresent()) {
-                // 기존 계정 재사용 - 같은 닉네임 유지
-                Account account = existingAccount.get();
-                User user = account.getUser();
-                
-                // 만료 시간 연장 (12시간 추가)
-                account.setExpiresAt(LocalDateTime.now().plusHours(12));
-                account.setLastLoginAt(LocalDateTime.now());
-                accountRepository.save(account);
-                
-                // JWT 토큰 생성
-                String token = jwtUtil.generateToken(user.getId());
-                
-                log.info("기존 게스트 계정 재사용: userId={}, nickname={}, accountId={}", 
-                        user.getId(), user.getNickname(), account.getId());
-                
-                return TokenResponseDto.builder()
-                        .accessToken(token)
-                        .userId(user.getId())
-                        .build();
-            }
+            // if (existingAccount.isPresent()) {
+            //     // 기존 계정 재사용 - 같은 닉네임 유지
+            //     Account account = existingAccount.get();
+            //     User user = account.getUser();
+            //     
+            //     // 만료 시간 연장 (12시간 추가)
+            //     account.setExpiresAt(LocalDateTime.now().plusHours(12));
+            //     account.setLastLoginAt(LocalDateTime.now());
+            //     accountRepository.save(account);
+            //     
+            //     // JWT 토큰 생성
+            //     String token = jwtUtil.generateToken(user.getId());
+            //     
+            //     log.info("기존 게스트 계정 재사용: userId={}, nickname={}, accountId={}", 
+            //             user.getId(), user.getNickname(), account.getId());
+            //     
+            //     return TokenResponseDto.builder()
+            //             .accessToken(token)
+            //             .userId(user.getId())
+            //             .build();
+            // }
             
-            // 2. 기존 계정이 없으면 새로 생성
+            // 2. 기존 계정이 없으면 새로 생성 (항상 새 계정 생성하도록 변경)
             return createNewGuestAccount();
                     
         } catch (Exception e) {
