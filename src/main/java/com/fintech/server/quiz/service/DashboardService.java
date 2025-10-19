@@ -197,7 +197,7 @@ public class DashboardService {
     private DashboardDto.CurrentLevelSessionDto getCurrentLevelSession(Long userId) {
         // 현재 진행 중인 레벨 세션 조회
         try {
-            LevelProgressDto progress = levelService.getLevelProgress(1L, userId); // 임시
+            LevelProgressDto progress = levelService.getLevelProgress(1L, userId, 1L); // 임시 (subsectorId 추가)
             
             return DashboardDto.CurrentLevelSessionDto.builder()
                     .sessionId("level_" + progress.getLevelId() + "_" + userId)
@@ -261,7 +261,7 @@ public class DashboardService {
         
         for (Level level : allLevels) {
             try {
-                LevelProgressDto progress = levelService.getLevelProgress(level.getId(), userId);
+                LevelProgressDto progress = levelService.getLevelProgress(level.getId(), userId, level.getSubsector().getId());
                 if (progress.getStatus() == LevelProgressDto.LevelStatus.COMPLETED && progress.isLevelPassed()) {
                     completedLevels++;
                 }

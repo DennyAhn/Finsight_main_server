@@ -9,6 +9,8 @@ import com.fintech.server.community.entity.Tag;
 import com.fintech.server.community.repository.CommunityPostRepository;
 import com.fintech.server.community.repository.PostTagLinkRepository;
 import com.fintech.server.community.repository.TagRepository;
+import com.fintech.server.community.repository.CommentRepository;
+import com.fintech.server.community.repository.PostLikeRepository;
 import com.fintech.server.entity.User;
 import com.fintech.server.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +30,8 @@ public class CommunityService {
     private final TagRepository tagRepository;
     private final PostTagLinkRepository postTagLinkRepository;
     private final UserRepository userRepository;
+    private final CommentRepository commentRepository;
+    private final PostLikeRepository postLikeRepository;
 
     public PostResponseDto createPost(PostRequestDto requestDto, Long userId) {
         System.out.println("=== createPost 시작 ===");
@@ -117,7 +121,17 @@ public class CommunityService {
     @Transactional(readOnly = true)
     public List<PostResponseDto> findAllPosts() {
         return postRepository.findAllWithAuthorAndBadge().stream()
-                .map(PostResponseDto::from)
+                .map(post -> PostResponseDto.from(post, false)) // 기본적으로 좋아요 상태는 false
+                .collect(Collectors.toList());
+    }
+    
+    @Transactional(readOnly = true)
+    public List<PostResponseDto> findAllPosts(Long userId) {
+        return postRepository.findAllWithAuthorAndBadge().stream()
+                .map(post -> {
+                    boolean isLiked = postLikeRepository.existsByUserIdAndPostId(userId, post.getId());
+                    return PostResponseDto.from(post, isLiked);
+                })
                 .collect(Collectors.toList());
     }
 
@@ -126,6 +140,14 @@ public class CommunityService {
         CommunityPost post = postRepository.findById(postId)
                 .orElseThrow(() -> new RuntimeException("Post not found with id: " + postId));
         return PostResponseDto.from(post);
+    }
+    
+    @Transactional(readOnly = true)
+    public PostResponseDto findPostById(Long postId, Long userId) {
+        CommunityPost post = postRepository.findById(postId)
+                .orElseThrow(() -> new RuntimeException("Post not found with id: " + postId));
+        boolean isLiked = postLikeRepository.existsByUserIdAndPostId(userId, postId);
+        return PostResponseDto.from(post, isLiked);
     }
 
     @Transactional
@@ -180,6 +202,9 @@ public class CommunityService {
         if (!post.getAuthor().getId().equals(userId)) {
             throw new RuntimeException("You are not authorized to delete this post");
         }
+        
+        // 관련 댓글 삭제 (외래키 제약조건 해결)
+        commentRepository.deleteByPostId(postId);
         
         // 관련 태그 링크 삭제
         postTagLinkRepository.deleteByPostId(postId);

@@ -16,6 +16,7 @@ public class PostResponseDto {
     private AuthorDto author;
     private String body;
     private int likeCount;
+    private boolean liked;  // 사용자가 좋아요를 눌렀는지 여부
     private int commentCount;
     private List<String> tags;
     private LocalDateTime createdAt;
@@ -36,6 +37,10 @@ public class PostResponseDto {
     }
 
     public static PostResponseDto from(CommunityPost post) {
+        return from(post, false);
+    }
+    
+    public static PostResponseDto from(CommunityPost post, boolean liked) {
         BadgeDto badgeDto = null;
         if (post.getAuthorBadge() != null) {
             badgeDto = BadgeDto.builder()
@@ -61,6 +66,7 @@ public class PostResponseDto {
                 .author(authorDto)
                 .body(post.getBody())
                 .likeCount(post.getLikeCount())
+                .liked(liked)
                 .commentCount(post.getCommentCount())
                 .tags(tagNames)
                 .createdAt(post.getCreatedAt())

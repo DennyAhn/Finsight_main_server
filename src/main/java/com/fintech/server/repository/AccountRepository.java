@@ -19,8 +19,8 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
     Optional<Account> findByEmail(String email);
     
     /**
-     * 만료된 게스트 계정 조회
+     * 만료된 게스트 계정 조회 (User와 함께 페치)
      */
-    @Query("SELECT a FROM Account a WHERE a.user.isGuest = true AND a.expiresAt < :now")
+    @Query("SELECT a FROM Account a JOIN FETCH a.user u WHERE u.isGuest = true AND a.expiresAt < :now")
     List<Account> findExpiredGuestAccounts(@Param("now") LocalDateTime now);
 }

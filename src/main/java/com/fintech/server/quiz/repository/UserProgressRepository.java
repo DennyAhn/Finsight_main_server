@@ -17,14 +17,26 @@ public interface UserProgressRepository extends JpaRepository<UserProgress, Long
     List<UserProgress> findByUserIdOrderByCreatedAtDesc(Long userId);
     
     /**
-     * 특정 사용자의 특정 레벨 진행률 조회
+     * 특정 사용자의 특정 레벨 진행률 조회 (최적화된 쿼리)
      */
     @Query("SELECT up FROM UserProgress up " +
-           "JOIN up.quiz q " +
-           "JOIN q.level l " +
+           "JOIN FETCH up.quiz q " +
+           "JOIN FETCH q.level l " +
+           "JOIN FETCH l.subsector s " +
            "WHERE up.user.id = :userId AND l.id = :levelId " +
            "ORDER BY up.createdAt DESC")
     List<UserProgress> findByUserIdAndLevelId(@Param("userId") Long userId, @Param("levelId") Long levelId);
+    
+    /**
+     * 특정 사용자의 특정 서브섹터의 특정 레벨 진행률 조회 (최적화된 쿼리)
+     */
+    @Query("SELECT up FROM UserProgress up " +
+           "JOIN FETCH up.quiz q " +
+           "JOIN FETCH q.level l " +
+           "JOIN FETCH l.subsector s " +
+           "WHERE up.user.id = :userId AND s.id = :subsectorId AND l.id = :levelId " +
+           "ORDER BY up.createdAt DESC")
+    List<UserProgress> findByUserIdAndSubsectorIdAndLevelId(@Param("userId") Long userId, @Param("subsectorId") Long subsectorId, @Param("levelId") Long levelId);
     
     /**
      * 특정 사용자의 특정 서브섹터 진행률 조회

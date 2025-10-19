@@ -2,6 +2,8 @@ package com.fintech.server.quiz.controller;
 
 import com.fintech.server.quiz.dto.LevelCompletionDto;
 import com.fintech.server.quiz.dto.LevelProgressDto;
+import com.fintech.server.quiz.entity.Level;
+import com.fintech.server.quiz.repository.LevelRepository;
 import com.fintech.server.quiz.service.LevelService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -15,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 public class LevelController {
 
     private final LevelService levelService;
+    private final LevelRepository levelRepository;
 
     /**
      * 레벨 진행 상황 조회 API
@@ -49,7 +52,10 @@ public class LevelController {
             @PathVariable("id") Long levelId,
             @RequestParam("userId") Long userId) {
         try {
-            LevelProgressDto progress = levelService.getLevelProgress(levelId, userId);
+            // 레벨 정보를 먼저 가져와서 서브섹터 ID를 얻음
+            Level level = levelRepository.findById(levelId)
+                    .orElseThrow(() -> new RuntimeException("Level not found with id: " + levelId));
+            LevelProgressDto progress = levelService.getLevelProgress(levelId, userId, level.getSubsector().getId());
             log.info("Level progress retrieved: levelId={}, userId={}, status={}", 
                     levelId, userId, progress.getStatus());
             return ResponseEntity.ok(progress);
@@ -131,7 +137,9 @@ public class LevelController {
             @RequestParam("userId") Long userId) {
         try {
             // 레벨 시작 로직 (현재는 단순히 진행 상황 조회)
-            levelService.getLevelProgress(levelId, userId);
+            Level level = levelRepository.findById(levelId)
+                    .orElseThrow(() -> new RuntimeException("Level not found with id: " + levelId));
+            levelService.getLevelProgress(levelId, userId, level.getSubsector().getId());
             
             log.info("Level started: levelId={}, userId={}", levelId, userId);
             return ResponseEntity.ok().body("Level started successfully");

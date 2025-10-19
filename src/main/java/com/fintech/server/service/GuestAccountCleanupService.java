@@ -8,6 +8,8 @@ import com.fintech.server.quiz.repository.UserDailyActivityRepository;
 import com.fintech.server.quiz.repository.UserProgressRepository;
 import com.fintech.server.quiz.repository.UserWrongNoteRepository;
 import com.fintech.server.community.repository.CommunityPostRepository;
+import com.fintech.server.community.repository.CommentRepository;
+import com.fintech.server.quiz.repository.UserBadgeRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -29,11 +31,13 @@ public class GuestAccountCleanupService {
     private final UserWrongNoteRepository userWrongNoteRepository;
     private final UserProgressRepository userProgressRepository;
     private final CommunityPostRepository communityPostRepository;
+    private final CommentRepository commentRepository;
+    private final UserBadgeRepository userBadgeRepository;
 
     /**
      * 만료된 게스트 계정 정리 (매 24시간마다 실행)
      */
-    @Scheduled(fixedRate = 86400000) // 24시간 = 86400000ms
+    @Scheduled(cron = "0 0 2 * * ?") // 매일 새벽 2시에 실행
     @Transactional
     public void cleanupExpiredGuestAccounts() {
         try {
@@ -52,21 +56,32 @@ public class GuestAccountCleanupService {
             for (Account account : expiredAccounts) {
                 Long userId = account.getUser().getId();
                 
-                // 관련 데이터 삭제 (외래키 순서대로)
-                userAnswerRepository.deleteByUserId(userId);
-                userDailyActivityRepository.deleteByIdUserId(userId);
-                userProgressRepository.deleteByUserId(userId);
-                userWrongNoteRepository.deleteByUserId(userId);
-                communityPostRepository.deleteByAuthorId(userId); // 커뮤니티 게시글 삭제 추가
-                
-                // 계정 삭제
-                accountRepository.delete(account);
-                
-                // 사용자 삭제
-                userRepository.deleteById(userId);
-                
-                log.info("게스트 계정 삭제 완료: userId={}, email={}", 
-                        userId, account.getEmail());
+                try {
+                    // 관련 데이터 삭제 (외래키 순서대로)
+                    userAnswerRepository.deleteByUserId(userId);
+                    userDailyActivityRepository.deleteByIdUserId(userId);
+                    userProgressRepository.deleteByUserId(userId);
+                    userWrongNoteRepository.deleteByUserId(userId);
+                    userBadgeRepository.deleteByUser_Id(userId); // 배지 삭제 추가
+                    
+                    // 커뮤니티 관련 데이터 삭제 (댓글 먼저, 게시글 나중에)
+                    commentRepository.deleteByAuthorId(userId);
+                    communityPostRepository.deleteByAuthorId(userId);
+                    
+                    // 계정 삭제
+                    accountRepository.delete(account);
+                    
+                    // 사용자 삭제
+                    userRepository.deleteById(userId);
+                    
+                    log.info("게스트 계정 삭제 완료: userId={}, email={}", 
+                            userId, account.getEmail());
+                            
+                } catch (Exception e) {
+                    log.error("게스트 계정 삭제 실패: userId={}, email={}, error={}", 
+                            userId, account.getEmail(), e.getMessage());
+                    // 개별 계정 삭제 실패 시에도 다음 계정 처리를 계속함
+                }
             }
             
             log.info("게스트 계정 정리 완료: {}개 계정 삭제", expiredAccounts.size());
@@ -92,7 +107,11 @@ public class GuestAccountCleanupService {
             userDailyActivityRepository.deleteByIdUserId(userId);
             userProgressRepository.deleteByUserId(userId);
             userWrongNoteRepository.deleteByUserId(userId);
-            communityPostRepository.deleteByAuthorId(userId); // 커뮤니티 게시글 삭제 추가
+            userBadgeRepository.deleteByUser_Id(userId); // 배지 삭제 추가
+            
+            // 커뮤니티 관련 데이터 삭제 (댓글 먼저, 게시글 나중에)
+            commentRepository.deleteByAuthorId(userId);
+            communityPostRepository.deleteByAuthorId(userId);
             
             // 계정 및 사용자 삭제
             accountRepository.delete(account);

@@ -39,12 +39,13 @@ public class UserProgressService {
     }
     
     /**
-     * 특정 레벨의 진행률 조회 (징검다리 기능 포함)
+     * 특정 서브섹터의 특정 레벨 진행률 조회 (징검다리 기능 포함)
      */
-    public LevelProgressDto getLevelProgress(Long userId, Long levelId) {
-        log.info("사용자 {}의 레벨 {} 진행률 조회 (징검다리 기능 포함)", userId, levelId);
+    public LevelProgressDto getLevelProgress(Long userId, Long subsectorId, Long levelId) {
+        log.info("사용자 {}의 서브섹터 {} 레벨 {} 진행률 조회 (징검다리 기능 포함)", userId, subsectorId, levelId);
         
-        List<UserProgress> progressList = userProgressRepository.findByUserIdAndLevelId(userId, levelId);
+        // 서브섹터와 레벨을 모두 고려하여 진행률 조회
+        List<UserProgress> progressList = userProgressRepository.findByUserIdAndSubsectorIdAndLevelId(userId, subsectorId, levelId);
         
         if (progressList.isEmpty()) {
             log.warn("사용자 {}의 레벨 {} 진행률이 없습니다", userId, levelId);
@@ -88,7 +89,7 @@ public class UserProgressService {
         Subsector subsector = level.getSubsector();
         
         // 징검다리 정보 생성
-        List<com.fintech.server.quiz.dto.StepProgressDto> steps = createStepProgress(levelId, userId, completedQuizzes, passedQuizzes);
+        List<com.fintech.server.quiz.dto.StepProgressDto> steps = createStepProgress(levelId, userId, completedQuizzes, passedQuizzes, level);
         boolean isStepPassed = passedQuizzes >= 3; // 75% 이상 통과 (4문제 중 3문제 이상)
         int currentStep = calculateCurrentStep(completedQuizzes);
         
@@ -269,11 +270,17 @@ public class UserProgressService {
     /**
      * 징검다리 단계별 진행률 생성
      */
-    private List<com.fintech.server.quiz.dto.StepProgressDto> createStepProgress(Long levelId, Long userId, int completedQuizzes, int passedQuizzes) {
+    private List<com.fintech.server.quiz.dto.StepProgressDto> createStepProgress(Long levelId, Long userId, int completedQuizzes, int passedQuizzes, Level level) {
         // 현재 4문제를 1개 단계로 처리
         boolean isCompleted = completedQuizzes == 4;
         boolean isPassed = passedQuizzes >= 3; // 75% 이상 통과 (4문제 중 3문제 이상)
         double passRate = completedQuizzes > 0 ? (double) passedQuizzes / completedQuizzes : 0.0;
+        
+        // 레벨 정보를 사용하여 단계 설명 생성
+        String stepDescription = level.getTitle() != null ? level.getTitle() : "기초 금융 상식";
+        if (level.getLearningGoal() != null && !level.getLearningGoal().trim().isEmpty()) {
+            stepDescription = level.getLearningGoal();
+        }
         
         com.fintech.server.quiz.dto.StepProgressDto step = com.fintech.server.quiz.dto.StepProgressDto.builder()
                 .stepNumber(1)
@@ -285,10 +292,66 @@ public class UserProgressService {
                 .isCompleted(isCompleted)
                 .isPassed(isPassed)
                 .passRate(passRate)
-                .stepDescription("기초 금융 상식")
+                .stepDescription(stepDescription)
                 .build();
         
         return java.util.Arrays.asList(step);
+    }
+
+    /**
+     * 사용자의 진행률 요약 조회 (레벨별)
+     */
+    public List<LevelProgressDto> getUserProgressSummary(Long userId) {
+        // 전체 진행률을 가져와서 레벨별로 그룹화
+        List<UserProgressDto> allProgress = getUserProgress(userId);
+        
+        // 레벨별로 그룹화하여 요약 생성
+        return allProgress.stream()
+                .collect(Collectors.groupingBy(
+                        UserProgressDto::getLevelId,
+                        Collectors.toList()
+                ))
+                .entrySet().stream()
+                .map(entry -> {
+                    Long levelId = entry.getKey();
+                    List<UserProgressDto> levelProgress = entry.getValue();
+                    
+                    // 레벨 정보 가져오기
+                    UserProgressDto firstProgress = levelProgress.get(0);
+                    
+                    // 통계 계산
+                    int completedQuizzes = (int) levelProgress.stream()
+                            .filter(p -> p.getFinishedAt() != null)
+                            .count();
+                    
+                    int passedQuizzes = (int) levelProgress.stream()
+                            .filter(p -> p.getPassed() != null && p.getPassed())
+                            .count();
+                    
+                    int failedQuizzes = completedQuizzes - passedQuizzes;
+                    
+                    return LevelProgressDto.builder()
+                            .levelId(levelId)
+                            .levelNumber(firstProgress.getLevelNumber())
+                            .levelTitle(firstProgress.getLevelTitle())
+                            .subsectorId(firstProgress.getSubsectorId())
+                            .subsectorName(firstProgress.getSubsectorName())
+                            .learningGoal("") // 학습 목표는 별도 조회 필요
+                            .status(LevelProgressDto.LevelStatus.IN_PROGRESS)
+                            .totalQuizzes(0) // 전체 퀴즈 수는 별도 조회 필요
+                            .completedQuizzes(completedQuizzes)
+                            .passedQuizzes(passedQuizzes)
+                            .failedQuizzes(failedQuizzes)
+                            .correctAnswers(passedQuizzes)
+                            .remainingToPass(Math.max(0, 0 - passedQuizzes))
+                            .completionRate(0.0) // 전체 퀴즈 수가 필요
+                            .passRate(completedQuizzes > 0 ? (double) passedQuizzes / completedQuizzes : 0.0)
+                            .levelPassed(passedQuizzes >= 0) // 전체 퀴즈 수가 필요
+                            .progressDetails(levelProgress)
+                            .build();
+                })
+                .sorted((a, b) -> Integer.compare(a.getLevelNumber(), b.getLevelNumber()))
+                .collect(Collectors.toList());
     }
 
     /**

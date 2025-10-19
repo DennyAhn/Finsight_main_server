@@ -35,14 +35,25 @@ public class LevelService {
     private static final int PASS_SCORE = 3; // 4문제 중 3문제 이상 맞춰야 통과
 
     /**
-     * 레벨 진행 상황 조회 (UserProgress 테이블 기준으로 통일)
+     * 레벨 진행 상황 조회 (기존 호환성 유지)
      */
     public LevelProgressDto getLevelProgress(Long levelId, Long userId) {
         Level level = levelRepository.findById(levelId)
                 .orElseThrow(() -> new RuntimeException("Level not found with id: " + levelId));
+        
+        // 기존 방식으로 서브섹터 ID를 가져와서 3개 파라미터 메서드 호출
+        return getLevelProgress(levelId, userId, level.getSubsector().getId());
+    }
+    
+    /**
+     * 서브섹터별 레벨 진행 상황 조회 (UserProgress 테이블 기준으로 통일)
+     */
+    public LevelProgressDto getLevelProgress(Long levelId, Long userId, Long subsectorId) {
+        Level level = levelRepository.findById(levelId)
+                .orElseThrow(() -> new RuntimeException("Level not found with id: " + levelId));
 
-        // UserProgress 테이블에서 진행 상황 조회
-        List<UserProgress> progressList = userProgressRepository.findByUserIdAndLevelId(userId, levelId);
+        // 서브섹터와 레벨을 모두 고려하여 진행 상황 조회
+        List<UserProgress> progressList = userProgressRepository.findByUserIdAndSubsectorIdAndLevelId(userId, subsectorId, levelId);
         
         if (progressList.isEmpty()) {
             return LevelProgressDto.builder()
@@ -115,7 +126,7 @@ public class LevelService {
         boolean nextLevelUnlocked = levelStatus == LevelProgressDto.LevelStatus.COMPLETED;
 
         // 징검다리 정보 생성
-        List<StepProgressDto> steps = createStepProgress(levelId, userId);
+        List<StepProgressDto> steps = createStepProgress(levelId, userId, level);
         boolean isStepPassed = correctAnswers >= 3; // 75% 이상 통과 (4문제 중 3문제 이상)
         int currentStep = calculateCurrentStep(completedQuizzes);
 
@@ -162,7 +173,10 @@ public class LevelService {
      */
     @Transactional
     public LevelCompletionDto completeLevel(Long levelId, Long userId) {
-        LevelProgressDto progress = getLevelProgress(levelId, userId);
+        // 레벨 정보를 먼저 가져와서 서브섹터 ID를 얻음
+        Level level = levelRepository.findById(levelId)
+                .orElseThrow(() -> new RuntimeException("Level not found with id: " + levelId));
+        LevelProgressDto progress = getLevelProgress(levelId, userId, level.getSubsector().getId());
         
         if (progress.getStatus() != LevelProgressDto.LevelStatus.COMPLETED) {
             throw new RuntimeException("Level is not completed yet");
@@ -344,7 +358,7 @@ public class LevelService {
     /**
      * 징검다리 단계별 진행률 생성
      */
-    private List<StepProgressDto> createStepProgress(Long levelId, Long userId) {
+    private List<StepProgressDto> createStepProgress(Long levelId, Long userId, Level level) {
         // user_progress 테이블에서 진행률 조회
         List<UserProgress> progressList = userProgressRepository.findByUserIdAndLevelId(userId, levelId);
         
@@ -360,6 +374,12 @@ public class LevelService {
         boolean isPassed = passedQuizzes >= 3; // 75% 이상 통과 (4문제 중 3문제 이상)
         double passRate = completedQuizzes > 0 ? (double) passedQuizzes / completedQuizzes : 0.0;
         
+        // 레벨 정보를 사용하여 단계 설명 생성
+        String stepDescription = level.getTitle() != null ? level.getTitle() : "기초 금융 상식";
+        if (level.getLearningGoal() != null && !level.getLearningGoal().trim().isEmpty()) {
+            stepDescription = level.getLearningGoal();
+        }
+        
         StepProgressDto step = StepProgressDto.builder()
                 .stepNumber(1)
                 .stepTitle("1단계")
@@ -370,7 +390,7 @@ public class LevelService {
                 .isCompleted(isCompleted)
                 .isPassed(isPassed)
                 .passRate(passRate)
-                .stepDescription("기초 금융 상식")
+                .stepDescription(stepDescription)
                 .build();
         
         return Arrays.asList(step);

@@ -70,15 +70,23 @@ public class CommunityController {
     }
 
     @GetMapping
-    public ResponseEntity<List<PostResponseDto>> getAllPosts() {
-        List<PostResponseDto> posts = communityService.findAllPosts();
-        return ResponseEntity.ok(posts);
+    public ResponseEntity<List<PostResponseDto>> getAllPosts(HttpServletRequest request) {
+        try {
+            Long currentUserId = getCurrentUserId(request);
+            List<PostResponseDto> posts = communityService.findAllPosts(currentUserId);
+            return ResponseEntity.ok(posts);
+        } catch (Exception e) {
+            // 사용자 인증 실패 시 기본 목록 반환
+            List<PostResponseDto> posts = communityService.findAllPosts();
+            return ResponseEntity.ok(posts);
+        }
     }
 
     @GetMapping("/{postId}")
-    public ResponseEntity<PostResponseDto> getPost(@PathVariable Long postId) {
+    public ResponseEntity<PostResponseDto> getPost(@PathVariable Long postId, HttpServletRequest request) {
         try {
-            PostResponseDto post = communityService.findPostById(postId);
+            Long currentUserId = getCurrentUserId(request);
+            PostResponseDto post = communityService.findPostById(postId, currentUserId);
             return ResponseEntity.ok(post);
         } catch (Exception e) {
             return ResponseEntity.notFound().build();
