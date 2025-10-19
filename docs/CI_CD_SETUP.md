@@ -93,7 +93,7 @@
 
 ```yaml
 # .github/workflows/deploy.yml
-name: Deploy to EC2
+name: Build and Deploy to EC2
 
 on:
   push:
@@ -102,10 +102,14 @@ on:
     branches: [ main ]
 
 jobs:
-  deploy:
+  build-and-deploy:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
+      - name: Set up Docker Buildx
+      - name: Login to Docker Hub
+      - name: Build and push Spring Boot Docker image
+      - name: Build and push Nginx Docker image
       - name: Setup SSH
       - name: Add EC2 to known hosts
       - name: Deploy to EC2
@@ -119,6 +123,8 @@ jobs:
 | `EC2_HOST` | `54.180.103.186` | EC2 서버 IP 주소 |
 | `EC2_USER` | `ec2-user` | EC2 사용자명 |
 | `EC2_SSH_KEY` | `-----BEGIN RSA PRIVATE KEY-----...` | SSH 개인키 |
+| `DOCKERHUB_USERNAME` | `dennyahn` | Docker Hub 사용자명 |
+| `DOCKERHUB_TOKEN` | `dckr_pat_...` | Docker Hub 액세스 토큰 |
 
 ### 3. 워크플로우 상세 설정
 
@@ -139,15 +145,53 @@ jobs:
 - name: Deploy to EC2
   run: |
     ssh -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+      # 프로젝트 디렉토리로 이동
       cd Finsight_main_server
-      git pull origin main
-      docker-compose -f docker-compose.prod.yml down
+      
+      # 로컬 변경사항 무시하고 강제 업데이트
+      echo "🔄 최신 코드로 강제 업데이트 중..."
+      git fetch origin
+      git reset --hard origin/main
+      git clean -fd
+      
+      # Docker Compose 파일 자동 수정 (version 속성 제거)
+      echo "🔧 Docker Compose 파일 수정 중..."
+      sed -i '/^version:/d' docker-compose.prod.yml
+      
+      # 완전 재배포
+      echo "🐳 기존 컨테이너 정리 중..."
+      docker-compose -f docker-compose.prod.yml down --volumes --remove-orphans
+      
+      echo "📥 최신 Docker 이미지 가져오기 중..."
       docker-compose -f docker-compose.prod.yml pull
-      docker-compose -f docker-compose.prod.yml up -d
+      
+      echo "🚀 새 컨테이너 시작 중..."
+      docker-compose -f docker-compose.prod.yml up -d --force-recreate
+      
+      # 상태 확인
+      echo "📊 컨테이너 상태 확인 중..."
       docker-compose -f docker-compose.prod.yml ps
-      sleep 30
-      curl -f http://localhost:8080/api/health || exit 1
-      echo "배포가 성공적으로 완료되었습니다!"
+      
+      # Nginx 컨테이너가 healthy 상태가 될 때까지 대기
+      echo "⏳ Nginx 컨테이너 시작 대기 중..."
+      timeout 120s bash -c 'until docker inspect fintech-nginx-prod --format="{{.State.Health.Status}}" | grep -q "healthy"; do sleep 5; done'
+      
+      # 헬스체크 (최대 1분 대기)
+      echo "🏥 애플리케이션 헬스체크 중..."
+      for i in {1..6}; do
+        if curl -fsL http://localhost/api/actuator/health; then
+          echo "✅ 헬스체크 성공!"
+          break
+        fi
+        if [ $i -eq 6 ]; then
+          echo "❌ 헬스체크 최종 실패"
+          exit 1
+        fi
+        echo "($i/6) 헬스체크 재시도 대기 중..."
+        sleep 10
+      done
+      
+      echo "✅ 배포가 성공적으로 완료되었습니다!"
     EOF
 ```
 
@@ -197,8 +241,22 @@ docker-compose -f docker-compose.prod.yml ps
 
 #### 단계 6: 헬스체크
 ```bash
-sleep 30
-curl -f http://localhost:8080/api/health || exit 1
+# Nginx 컨테이너가 healthy 상태가 될 때까지 대기
+timeout 120s bash -c 'until docker inspect fintech-nginx-prod --format="{{.State.Health.Status}}" | grep -q "healthy"; do sleep 5; done'
+
+# 애플리케이션 헬스체크 (최대 1분 대기)
+for i in {1..6}; do
+  if curl -fsL http://localhost/api/actuator/health; then
+    echo "✅ 헬스체크 성공!"
+    break
+  fi
+  if [ $i -eq 6 ]; then
+    echo "❌ 헬스체크 최종 실패"
+    exit 1
+  fi
+  echo "($i/6) 헬스체크 재시도 대기 중..."
+  sleep 10
+done
 ```
 
 ### 3. 배포 시간 분석
@@ -206,13 +264,15 @@ curl -f http://localhost:8080/api/health || exit 1
 | 단계 | 소요 시간 | 설명 |
 |------|----------|------|
 | 코드 체크아웃 | ~10초 | GitHub에서 코드 다운로드 |
+| Docker 이미지 빌드 | ~2분 | Spring Boot + Nginx 이미지 빌드 |
+| Docker Hub 푸시 | ~1분 | 이미지 업로드 |
 | SSH 접속 | ~5초 | EC2 서버 연결 |
 | 코드 동기화 | ~15초 | git pull 실행 |
 | Docker 중지 | ~10초 | 기존 컨테이너 중지 |
 | 이미지 업데이트 | ~30초 | 새 이미지 다운로드 |
 | 서비스 재시작 | ~20초 | 새 컨테이너 시작 |
-| 헬스체크 | ~30초 | 애플리케이션 준비 대기 |
-| **총 소요 시간** | **~2분** | **전체 배포 과정** |
+| 헬스체크 | ~1분 | 애플리케이션 준비 대기 |
+| **총 소요 시간** | **~5분** | **전체 배포 과정** |
 
 ---
 
@@ -253,14 +313,20 @@ docker-compose -f docker-compose.prod.yml logs -f nginx
 #### 헬스체크 엔드포인트
 ```bash
 # 로컬에서 확인
-curl http://54.180.103.186/api/health
+curl https://finsight.o-r.kr/api/actuator/health
 
 # 응답 예시
 {
   "status": "UP",
-  "timestamp": "2024-01-08T15:30:00",
-  "service": "fin-main-server",
-  "version": "1.2.1"
+  "components": {
+    "db": {
+      "status": "UP",
+      "details": {
+        "database": "MySQL",
+        "validationQuery": "isValid()"
+      }
+    }
+  }
 }
 ```
 
@@ -353,7 +419,7 @@ docker-compose -f docker-compose.prod.yml up -d
 - **배포 빈도**: 주 1-2회
 
 #### After (자동 배포)
-- **소요 시간**: 2분
+- **소요 시간**: 5분
 - **작업 단계**: 1단계 (git push)
 - **인적 오류**: 없음
 - **배포 빈도**: 일 3-5회
@@ -362,7 +428,7 @@ docker-compose -f docker-compose.prod.yml up -d
 
 | 지표 | 개선 전 | 개선 후 | 개선율 |
 |------|---------|---------|--------|
-| 배포 시간 | 15-20분 | 2분 | **90% 단축** |
+| 배포 시간 | 15-20분 | 5분 | **75% 단축** |
 | 배포 빈도 | 주 1-2회 | 일 3-5회 | **300% 증가** |
 | 배포 실패율 | 15% | 2% | **87% 감소** |
 | 개발자 만족도 | 6/10 | 9/10 | **50% 향상** |
@@ -472,7 +538,7 @@ strategy:
 - ✅ **헬스체크** 기반 배포 검증
 
 ### 비즈니스 임팩트
-- 🚀 **배포 시간 90% 단축** (20분 → 2분)
+- 🚀 **배포 시간 75% 단축** (20분 → 5분)
 - 🚀 **배포 빈도 300% 증가** (주 1-2회 → 일 3-5회)
 - 🚀 **배포 실패율 87% 감소** (15% → 2%)
 - 🚀 **개발자 생산성 50% 향상**

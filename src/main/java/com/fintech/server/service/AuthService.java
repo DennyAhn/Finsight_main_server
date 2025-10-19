@@ -14,8 +14,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -145,20 +143,21 @@ public class AuthService {
 
     /**
      * 최근 유효한 게스트 계정 조회 (24시간 내, 만료되지 않은 계정)
+     * 현재 주석처리된 로직에서만 사용되므로 임시 주석처리
      */
-    private Optional<Account> findRecentValidGuestAccount() {
-        LocalDateTime now = LocalDateTime.now();
-        LocalDateTime recentTime = now.minusHours(24); // 24시간 전
-        
-        List<Account> recentAccounts = accountRepository.findRecentValidGuestAccounts(now, recentTime);
-        
-        if (!recentAccounts.isEmpty()) {
-            // 가장 최근 계정 반환
-            return Optional.of(recentAccounts.get(0));
-        }
-        
-        return Optional.empty();
-    }
+    // private Optional<Account> findRecentValidGuestAccount() {
+    //     LocalDateTime now = LocalDateTime.now();
+    //     LocalDateTime recentTime = now.minusHours(24); // 24시간 전
+    //     
+    //     List<Account> recentAccounts = accountRepository.findRecentValidGuestAccounts(now, recentTime);
+    //     
+    //     if (!recentAccounts.isEmpty()) {
+    //         // 가장 최근 계정 반환
+    //         return Optional.of(recentAccounts.get(0));
+    //     }
+    //     
+    //     return Optional.empty();
+    // }
 
     /**
      * 기존 사용자 ID로 게스트 계정 재사용

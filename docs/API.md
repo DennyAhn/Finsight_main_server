@@ -11,17 +11,17 @@
 
 ### 🛠️ 기술 스택
 - **Backend**: Spring Boot 3.2, Java 17
-- **Database**: MySQL 8.0
+- **Database**: MySQL 8.0 (AWS RDS)
 - **Authentication**: JWT
 - **Documentation**: Swagger UI
-- **Deployment**: Docker, AWS EC2
+- **Deployment**: Docker, AWS EC2, Nginx
 
 ### 🌐 서버 정보
 | 환경 | URL | 상태 |
 |------|-----|------|
 | **로컬 개발** | `http://localhost:8080/api` | ✅ 활성 |
-| **프로덕션** | `http://54.180.103.186:8080/api` | ✅ 활성 |
-| **Swagger UI** | `http://54.180.103.186:8080/api/swagger-ui/index.html` | ✅ 활성 |
+| **프로덕션** | `https://finsight.o-r.kr/api` | ✅ 활성 |
+| **Swagger UI** | `https://finsight.o-r.kr/api/swagger-ui/index.html` | ✅ 활성 |
 
 ---
 
@@ -52,6 +52,11 @@
 - **진행률 표시**: 각 배지별 달성 조건과 현재 진행도
 - **동기부여**: 학습 성취감 극대화
 
+### 6. 💬 **커뮤니티 기능**
+- **게시글 작성/조회**: 학습 경험 공유
+- **댓글 시스템**: 소통 및 질문/답변
+- **좋아요 기능**: 인기 게시글 추천
+
 ---
 
 ## 🔗 API 엔드포인트
@@ -70,7 +75,7 @@ Content-Type: application/json
 }
 ```
 
-#### 로그인
+#### 로그인 (임시 구현)
 ```http
 POST /api/auth/login
 Content-Type: application/json
@@ -93,7 +98,7 @@ POST /api/auth/guest?userId={userId}
 **응답 예시:**
 ```json
 {
-  "accessToken": "eyJhbGciOiJIUzI1NiJ9...",
+  "accessToken": "eyJhbGciOiJIUzUxMiJ9...",
   "userId": 123
 }
 ```
@@ -104,25 +109,6 @@ POST /api/auth/guest?userId={userId}
 - ✅ **자동 계정 재사용**: 기존 계정이 있으면 자동으로 재사용
 - ✅ **만료 시간 연장**: 사용할 때마다 12시간씩 연장
 - ✅ **에러 처리**: 재사용 실패 시 자동으로 새 계정 생성
-
----
-
-### 📚 **학습 콘텐츠 조회**
-
-#### 전체 섹터 조회
-```http
-GET /api/sectors
-```
-
-#### 서브섹터 상세 정보
-```http
-GET /api/subsectors/{subsectorId}
-```
-
-#### 레벨별 퀴즈 목록 (사용자 진행상황 포함)
-```http
-GET /api/levels/{levelId}/quizzes?userId={userId}
-```
 
 ---
 
@@ -150,6 +136,16 @@ Content-Type: application/json
 POST /api/quizzes/{quizId}/complete?userId={userId}
 ```
 
+#### 퀴즈 재시도
+```http
+POST /api/quizzes/{quizId}/retry?userId={userId}
+```
+
+#### 사용자 총 점수 조회
+```http
+GET /api/quizzes/user/{userId}/total-score
+```
+
 ---
 
 ### 📊 **진행률 관리**
@@ -159,14 +155,34 @@ POST /api/quizzes/{quizId}/complete?userId={userId}
 GET /api/levels/{levelId}/progress?userId={userId}
 ```
 
-#### 서브섹터별 진행률 조회
+#### 레벨 완료 처리
+```http
+POST /api/levels/{levelId}/complete?userId={userId}
+```
+
+#### 레벨 시작 처리
+```http
+POST /api/levels/{levelId}/start?userId={userId}
+```
+
+#### 나의 전체 진행률 조회
+```http
+GET /api/progress/user/me
+```
+
+#### 나의 서브섹터별 레벨 진행률 조회
+```http
+GET /api/progress/user/me/subsector/{subsectorId}/level/{levelId}
+```
+
+#### 나의 서브섹터별 진행률 조회
 ```http
 GET /api/progress/user/me/subsector/{subsectorId}
 ```
 
-#### 사용자 전체 진행률 조회
+#### 나의 진행률 요약
 ```http
-GET /api/progress/user/me
+GET /api/progress/user/me/summary
 ```
 
 ---
@@ -176,6 +192,11 @@ GET /api/progress/user/me
 #### 오답 노트 목록 조회
 ```http
 GET /api/wrong-notes?userId={userId}&page=0&size=20
+```
+
+#### 특정 오답 노트 조회
+```http
+GET /api/wrong-notes/{noteId}?userId={userId}
 ```
 
 #### 개인 메모 작성
@@ -191,13 +212,38 @@ Content-Type: text/plain
 PUT /api/wrong-notes/{noteId}/toggle-resolved?userId={userId}
 ```
 
+#### 오답 노트 삭제
+```http
+DELETE /api/wrong-notes/{noteId}?userId={userId}
+```
+
 ---
 
 ### 🏅 **배지 시스템**
 
+#### 배지 시스템 초기화 (관리자용)
+```http
+POST /api/badges/init
+```
+
+#### 사용자 배지 진행률 업데이트
+```http
+POST /api/badges/update/{userId}
+```
+
+#### 사용자 배지 요약 조회
+```http
+GET /api/badges/user/{userId}/summary
+```
+
 #### 사용자 현재 배지 조회
 ```http
 GET /api/badges/user/{userId}/current
+```
+
+#### 사용자 획득 배지 목록 조회
+```http
+GET /api/badges/user/{userId}/achieved
 ```
 
 #### 사용자 모든 배지 목록 (진행률 포함)
@@ -205,9 +251,14 @@ GET /api/badges/user/{userId}/current
 GET /api/badges/user/{userId}/all
 ```
 
-#### 배지 시스템 초기화 (관리자용)
+#### 모든 배지 목록 조회
 ```http
-POST /api/badges/init
+GET /api/badges
+```
+
+#### 사용자 진행률 요약
+```http
+GET /api/badges/user/{userId}/progress/summary
 ```
 
 ---
@@ -227,21 +278,102 @@ Content-Type: application/json
 
 #### 게시글 목록 조회
 ```http
-GET /api/community/posts?page=0&size=20&tag=예금
+GET /api/community/posts?page=0&size=20
+```
+
+#### 특정 게시글 조회
+```http
+GET /api/community/posts/{postId}
+```
+
+#### 게시글 수정
+```http
+PUT /api/community/posts/{postId}
+Content-Type: application/json
+
+{
+  "body": "수정된 내용",
+  "tags": ["수정된", "태그"]
+}
+```
+
+#### 게시글 삭제
+```http
+DELETE /api/community/posts/{postId}
+```
+
+#### 게시글 좋아요 토글
+```http
+POST /api/community/posts/{postId}/like?userId={userId}
+```
+
+#### 게시글 좋아요 상태 조회
+```http
+GET /api/community/posts/{postId}/like?userId={userId}
+```
+
+#### 댓글 작성
+```http
+POST /api/community/posts/{postId}/comments
+Content-Type: application/json
+
+{
+  "body": "좋은 정보 감사합니다!"
+}
+```
+
+#### 댓글 목록 조회
+```http
+GET /api/community/posts/{postId}/comments
+```
+
+#### 댓글 수정
+```http
+PUT /api/community/posts/comments/{commentId}
+Content-Type: application/json
+
+{
+  "body": "수정된 댓글 내용"
+}
+```
+
+#### 댓글 삭제
+```http
+DELETE /api/community/posts/comments/{commentId}
+```
+
+#### 사용자 댓글 목록 조회
+```http
+GET /api/community/posts/comments/user/{userId}
 ```
 
 ---
 
-### 📈 **대시보드 & 통계**
+### 📈 **관리자 통계 (Admin)**
 
-#### 사용자 대시보드
+#### 전체 오답 노트 통계
 ```http
-GET /api/dashboard?userId={userId}
+GET /api/admin/wrong-notes/statistics/overall
 ```
 
-#### 오답 노트 통계
+#### 섹터별 오답 노트 통계
 ```http
-GET /api/wrong-notes/statistics?userId={userId}
+GET /api/admin/wrong-notes/statistics/sector/{sectorId}
+```
+
+#### 서브섹터별 오답 노트 통계
+```http
+GET /api/admin/wrong-notes/statistics/subsector/{subsectorId}
+```
+
+#### 퀴즈별 오답 노트 통계
+```http
+GET /api/admin/wrong-notes/statistics/quiz/{quizId}
+```
+
+#### 관리자 대시보드
+```http
+GET /api/admin/wrong-notes/dashboard
 ```
 
 ---
@@ -297,7 +429,6 @@ GET /api/wrong-notes/statistics?userId={userId}
 - **JWT 토큰**: `Authorization: Bearer {token}`
 - **개발 편의**: 대부분 API에서 `userId` 파라미터로 접근 가능
 
-
 ### CORS 설정
 - **허용 오리진**: 모든 도메인
 - **허용 메서드**: GET, POST, PUT, DELETE, OPTIONS
@@ -332,7 +463,7 @@ GET /api/wrong-notes/statistics?userId={userId}
 - **TTL**: 콘텐츠 1시간, 섹터 정보 24시간
 
 ### 모니터링
-- **헬스 체크**: `/api/health`
+- **헬스 체크**: `/api/actuator/health`
 - **Spring Actuator**: `/api/actuator/health`
 - **로그**: 구조화된 로깅으로 디버깅 지원
 
@@ -362,8 +493,8 @@ ENTRYPOINT ["java", "-jar", "/app.jar"]
 ## 📈 **프로젝트 성과**
 
 ### 구현된 기능
-- ✅ **11개 주요 API 그룹** 구현
-- ✅ **50+ 엔드포인트** 개발
+- ✅ **8개 주요 API 그룹** 구현
+- ✅ **40+ 엔드포인트** 개발
 - ✅ **실시간 채점 시스템** 구축
 - ✅ **징검다리 진행률 시스템** 구현
 - ✅ **6단계 배지 시스템** 완성
@@ -371,6 +502,7 @@ ENTRYPOINT ["java", "-jar", "/app.jar"]
 - ✅ **커뮤니티 기능** 추가
 - ✅ **다중 사용자 지원 게스트 로그인** 구현
 - ✅ **닉네임 일관성 보장** 시스템
+- ✅ **관리자 통계 대시보드** 구축
 
 ### 기술적 성과
 - 🏗️ **계층적 아키텍처**: Controller → Service → Repository 패턴
@@ -383,13 +515,13 @@ ENTRYPOINT ["java", "-jar", "/app.jar"]
 
 ## 📞 **연락처**
 
-- **프로젝트**: [GitHub Repository]
-- **API 테스트**: [Swagger UI](http://54.180.103.186:8080/api/swagger-ui/index.html)
+- **프로젝트**: [GitHub Repository](https://github.com/DennyAhn/Finsight_main_server)
+- **API 테스트**: [Swagger UI](https://finsight.o-r.kr/api/swagger-ui/index.html)
 - **이메일**: support@finsight.com
 
 ---
 
-**API 버전**: 1.4.0  
-**최종 업데이트**: 2025-01-15  
+**API 버전**: 1.5.0  
+**최종 업데이트**: 2025-01-20  
 **개발 기간**: 2024.12 ~ 2025.01  
 **개발자**: Finsight Development Team
