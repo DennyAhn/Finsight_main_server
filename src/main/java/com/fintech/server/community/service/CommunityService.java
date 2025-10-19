@@ -206,6 +206,9 @@ public class CommunityService {
         // 관련 댓글 삭제 (외래키 제약조건 해결)
         commentRepository.deleteByPostId(postId);
         
+        // 관련 좋아요 삭제 (외래키 제약조건 해결)
+        postLikeRepository.deleteByPostId(postId);
+        
         // 관련 태그 링크 삭제
         postTagLinkRepository.deleteByPostId(postId);
         
