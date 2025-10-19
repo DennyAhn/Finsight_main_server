@@ -95,13 +95,17 @@ POST /api/auth/guest
 POST /api/auth/guest?userId={userId}
 ```
 
-**응답 예시:**
+<details>
+<summary><strong>📋 응답 예시</strong></summary>
+
 ```json
 {
-  "accessToken": "eyJhbGciOiJIUzUxMiJ9...",
-  "userId": 123
+  "accessToken": "eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiIxNDk5IiwiaWF0IjoxNzYwOTA0NzU0LCJleHAiOjE3NjA5OTExNTR9.4kzd0yGdiUEPPi_4KhOUDCp3hupPKfvzvn4lgqJjN7NLcjQkSVlwjdy2kAfbnQpJ",
+  "userId": 1499
 }
 ```
+
+</details>
 
 **특징:**
 - ✅ **다중 사용자 지원**: 각 브라우저별 독립적인 계정 관리
@@ -119,6 +123,41 @@ POST /api/auth/guest?userId={userId}
 GET /api/quizzes/{quizId}
 ```
 
+<details>
+<summary><strong>📋 응답 예시</strong></summary>
+
+```json
+{
+  "id": 1,
+  "title": "금융기초 퀴즈",
+  "levelId": 1,
+  "questions": [
+    {
+      "id": 1,
+      "stemMd": "1금융권에 해당하는 기관은?",
+      "type": "CONCEPT",
+      "difficulty": 1,
+      "options": [
+        {
+          "id": 1,
+          "label": "A",
+          "contentMd": "은행",
+          "isCorrect": true
+        },
+        {
+          "id": 2,
+          "label": "B", 
+          "contentMd": "증권사",
+          "isCorrect": false
+        }
+      ]
+    }
+  ]
+}
+```
+
+</details>
+
 #### 답안 제출 (실시간 채점)
 ```http
 POST /api/quizzes/submit-answer
@@ -131,10 +170,40 @@ Content-Type: application/json
 }
 ```
 
+<details>
+<summary><strong>📋 응답 예시</strong></summary>
+
+```json
+{
+  "isCorrect": true,
+  "correctOptionId": 1,
+  "feedback": "정답입니다! 1금융권은 은행을 의미합니다."
+}
+```
+
+</details>
+
 #### 퀴즈 완료 처리
 ```http
 POST /api/quizzes/{quizId}/complete?userId={userId}
 ```
+
+<details>
+<summary><strong>📋 응답 예시</strong></summary>
+
+```json
+{
+  "quizId": 1,
+  "isCompleted": true,
+  "isPassed": true,
+  "score": 4,
+  "totalQuestions": 4,
+  "correctAnswers": 4,
+  "completedAt": "2025-01-20T19:58:30"
+}
+```
+
+</details>
 
 #### 퀴즈 재시도
 ```http
@@ -146,6 +215,20 @@ POST /api/quizzes/{quizId}/retry?userId={userId}
 GET /api/quizzes/user/{userId}/total-score
 ```
 
+<details>
+<summary><strong>📋 응답 예시</strong></summary>
+
+```json
+{
+  "userId": 1499,
+  "totalScore": 1250,
+  "totalQuizzesCompleted": 15,
+  "averageScore": 83.3
+}
+```
+
+</details>
+
 ---
 
 ### 📊 **진행률 관리**
@@ -154,6 +237,43 @@ GET /api/quizzes/user/{userId}/total-score
 ```http
 GET /api/levels/{levelId}/progress?userId={userId}
 ```
+
+<details>
+<summary><strong>📋 응답 예시</strong></summary>
+
+```json
+{
+  "levelId": 1,
+  "levelNumber": 1,
+  "levelTitle": "초급자",
+  "subsectorId": 1,
+  "subsectorName": "금융권",
+  "learningGoal": "1금융권과 2금융권의 차이를 배워요.",
+  "status": "NOT_STARTED",
+  "totalQuizzes": 4,
+  "completedQuizzes": 0,
+  "passedQuizzes": 0,
+  "failedQuizzes": 0,
+  "correctAnswers": 0,
+  "remainingToPass": 3,
+  "startedAt": null,
+  "completedAt": null,
+  "timeSpent": 0,
+  "timeLimit": 3600,
+  "completionRate": 0.0,
+  "passRate": 0.0,
+  "quizProgress": [],
+  "nextLevelId": null,
+  "nextLevelTitle": null,
+  "nextLevelUnlocked": false,
+  "levelPassed": false,
+  "steps": [],
+  "isStepPassed": false,
+  "currentStep": 1
+}
+```
+
+</details>
 
 #### 레벨 완료 처리
 ```http
@@ -241,15 +361,156 @@ GET /api/badges/user/{userId}/summary
 GET /api/badges/user/{userId}/current
 ```
 
+<details>
+<summary><strong>📋 응답 예시</strong></summary>
+
+```json
+{
+  "id": 1,
+  "code": "BRONZE",
+  "name": "브론즈",
+  "description": "첫 번째 벳지 - 3개 퀴즈 완료",
+  "iconUrl": "https://s3.ap-northeast-2.amazonaws.com/fin.img99/badges/bronze.png",
+  "levelNumber": 1,
+  "requiredQuizzes": 3,
+  "requiredCorrectAnswers": 5,
+  "color": "#CD7F32",
+  "createdAt": "2025-10-02T05:25:21",
+  "updatedAt": "2025-10-02T05:25:21"
+}
+```
+
+</details>
+
 #### 사용자 획득 배지 목록 조회
 ```http
 GET /api/badges/user/{userId}/achieved
 ```
 
+#### 사용자 배지 요약 조회
+```http
+GET /api/badges/user/{userId}/summary
+```
+
+<details>
+<summary><strong>📋 응답 예시</strong></summary>
+
+```json
+{
+  "currentBadge": {
+    "id": 1,
+    "code": "BRONZE",
+    "name": "브론즈",
+    "description": "첫 번째 벳지 - 3개 퀴즈 완료",
+    "iconUrl": "https://s3.ap-northeast-2.amazonaws.com/fin.img99/badges/bronze.png",
+    "levelNumber": 1,
+    "requiredQuizzes": 3,
+    "requiredCorrectAnswers": 5,
+    "color": "#CD7F32",
+    "createdAt": "2025-10-02T05:25:21",
+    "updatedAt": "2025-10-02T05:25:21"
+  },
+  "nextBadge": {
+    "id": 1,
+    "code": "BRONZE",
+    "name": "브론즈",
+    "description": "첫 번째 벳지 - 3개 퀴즈 완료",
+    "iconUrl": "https://s3.ap-northeast-2.amazonaws.com/fin.img99/badges/bronze.png",
+    "levelNumber": 1,
+    "requiredQuizzes": 3,
+    "requiredCorrectAnswers": 5,
+    "color": "#CD7F32",
+    "createdAt": "2025-10-02T05:25:21",
+    "updatedAt": "2025-10-02T05:25:21"
+  },
+  "allBadges": [
+    {
+      "id": 3710,
+      "badge": {
+        "id": 1,
+        "code": "BRONZE",
+        "name": "브론즈",
+        "description": "첫 번째 벳지 - 3개 퀴즈 완료",
+        "iconUrl": "https://s3.ap-northeast-2.amazonaws.com/fin.img99/badges/bronze.png",
+        "levelNumber": 1,
+        "requiredQuizzes": 3,
+        "requiredCorrectAnswers": 5,
+        "color": "#CD7F32",
+        "createdAt": "2025-10-02T05:25:21",
+        "updatedAt": "2025-10-02T05:25:21"
+      },
+      "progress": 0,
+      "isAchieved": false,
+      "earnedAt": "2025-10-20T05:12:40",
+      "awardedAt": null,
+      "source": null
+    }
+  ],
+  "achievedBadges": [],
+  "totalBadges": 6,
+  "achievedBadgesCount": 0,
+  "progressPercentage": 0
+}
+```
+
+</details>
+
 #### 사용자 모든 배지 목록 (진행률 포함)
 ```http
 GET /api/badges/user/{userId}/all
 ```
+
+<details>
+<summary><strong>📋 응답 예시</strong></summary>
+
+```json
+[
+  {
+    "id": 3710,
+    "badge": {
+      "id": 1,
+      "code": "BRONZE",
+      "name": "브론즈",
+      "description": "첫 번째 벳지 - 3개 퀴즈 완료",
+      "iconUrl": "https://s3.ap-northeast-2.amazonaws.com/fin.img99/badges/bronze.png",
+      "levelNumber": 1,
+      "requiredQuizzes": 3,
+      "requiredCorrectAnswers": 5,
+      "color": "#CD7F32",
+      "createdAt": "2025-10-02T05:25:21",
+      "updatedAt": "2025-10-02T05:25:21"
+    },
+    "progress": 0,
+    "isAchieved": false,
+    "earnedAt": "2025-10-20T05:12:40",
+    "awardedAt": null,
+    "source": null
+  },
+  {
+    "id": 3711,
+    "badge": {
+      "id": 2,
+      "code": "SILVER",
+      "name": "실버",
+      "description": "두 번째 벳지 - 6개 퀴즈 완료",
+      "iconUrl": "https://s3.ap-northeast-2.amazonaws.com/fin.img99/badges/silver.png",
+      "levelNumber": 2,
+      "requiredQuizzes": 6,
+      "requiredCorrectAnswers": 10,
+      "color": "#C0C0C0",
+      "createdAt": "2025-10-02T05:25:21",
+      "updatedAt": "2025-10-02T05:25:21"
+    },
+    "progress": 0,
+    "isAchieved": false,
+    "earnedAt": "2025-10-20T05:12:40",
+    "awardedAt": null,
+    "source": null
+  }
+]
+```
+
+</details>
 
 #### 모든 배지 목록 조회
 ```http
@@ -281,10 +542,79 @@ Content-Type: application/json
 GET /api/community/posts?page=0&size=20
 ```
 
+<details>
+<summary><strong>📋 응답 예시</strong></summary>
+
+```json
+[
+  {
+    "id": 23,
+    "author": {
+      "id": 1295,
+      "nickname": "오리",
+      "badge": {
+        "name": "브론즈",
+        "iconUrl": "https://s3.ap-northeast-2.amazonaws.com/fin.img99/badges/bronze.png"
+      }
+    },
+    "body": "안녕",
+    "likeCount": 9,
+    "liked": false,
+    "commentCount": 1,
+    "tags": [],
+    "createdAt": "2025-10-18T16:28:09"
+  },
+  {
+    "id": 25,
+    "author": {
+      "id": 1349,
+      "nickname": "사자",
+      "badge": {
+        "name": "브론즈",
+        "iconUrl": "https://s3.ap-northeast-2.amazonaws.com/fin.img99/badges/bronze.png"
+      }
+    },
+    "body": "안녕\n",
+    "likeCount": 17,
+    "liked": false,
+    "commentCount": 2,
+    "tags": [],
+    "createdAt": "2025-10-19T17:02:49"
+  }
+]
+```
+
+</details>
+
 #### 특정 게시글 조회
 ```http
 GET /api/community/posts/{postId}
 ```
+
+<details>
+<summary><strong>📋 응답 예시</strong></summary>
+
+```json
+{
+  "id": 23,
+  "author": {
+    "id": 1295,
+    "nickname": "오리",
+    "badge": {
+      "name": "브론즈",
+      "iconUrl": "https://s3.ap-northeast-2.amazonaws.com/fin.img99/badges/bronze.png"
+    }
+  },
+  "body": "안녕",
+  "likeCount": 9,
+  "liked": false,
+  "commentCount": 1,
+  "tags": [],
+  "createdAt": "2025-10-18T16:28:09"
+}
+```
+
+</details>
 
 #### 게시글 수정
 ```http
@@ -307,6 +637,19 @@ DELETE /api/community/posts/{postId}
 POST /api/community/posts/{postId}/like?userId={userId}
 ```
 
+<details>
+<summary><strong>📋 응답 예시</strong></summary>
+
+```json
+{
+  "liked": true,
+  "likeCount": 10,
+  "message": "좋아요를 눌렀습니다."
+}
+```
+
+</details>
+
 #### 게시글 좋아요 상태 조회
 ```http
 GET /api/community/posts/{postId}/like?userId={userId}
@@ -327,6 +670,47 @@ Content-Type: application/json
 GET /api/community/posts/{postId}/comments
 ```
 
+<details>
+<summary><strong>📋 응답 예시</strong></summary>
+
+```json
+[
+  {
+    "id": 1,
+    "author": {
+      "id": 1330,
+      "nickname": "말",
+      "badge": {
+        "name": "브론즈",
+        "iconUrl": "https://s3.ap-northeast-2.amazonaws.com/fin.img99/badges/bronze.png"
+      }
+    },
+    "body": "댓글을 수정했습니다! 댓글 수정 기능 테스트입니다.",
+    "parentCommentId": null,
+    "replies": [
+      {
+        "id": 2,
+        "author": {
+          "id": 1330,
+          "nickname": "말",
+          "badge": {
+            "name": "브론즈",
+            "iconUrl": "https://s3.ap-northeast-2.amazonaws.com/fin.img99/badges/bronze.png"
+          }
+        },
+        "body": "답글입니다! 대댓글 기능 테스트입니다.",
+        "parentCommentId": 1,
+        "replies": [],
+        "createdAt": "2025-10-18T20:40:49"
+      }
+    ],
+    "createdAt": "2025-10-18T20:40:03"
+  }
+]
+```
+
+</details>
+
 #### 댓글 수정
 ```http
 PUT /api/community/posts/comments/{commentId}
@@ -345,6 +729,88 @@ DELETE /api/community/posts/comments/{commentId}
 #### 사용자 댓글 목록 조회
 ```http
 GET /api/community/posts/comments/user/{userId}
+```
+
+<details>
+<summary><strong>📋 응답 예시</strong></summary>
+
+```json
+[]
+```
+
+</details>
+
+---
+
+### 📈 **대시보드 & 통계**
+
+#### 사용자 대시보드
+```http
+GET /api/dashboard?userId={userId}
+```
+
+<details>
+<summary><strong>📋 응답 예시</strong></summary>
+
+```json
+{
+  "userInfo": {
+    "userId": 1499,
+    "nickname": "하마",
+    "currentLevelTitle": "브론즈",
+    "currentLevelNumber": 1,
+    "streak": 0,
+    "totalScore": 0
+  },
+  "learningStats": {
+    "totalLevelsCompleted": 0,
+    "totalQuizzesCompleted": 0,
+    "totalQuestionsAnswered": 0,
+    "totalMinutesSpent": 0,
+    "averageScore": 0.0
+  },
+  "weeklyProgress": [
+    {
+      "dayOfMonth": 20,
+      "completed": false,
+      "minutesSpent": 0,
+      "quizzesCompleted": 0
+    }
+  ],
+  "recentActivities": [],
+  "nextLevelRecommendation": {
+    "levelId": 1,
+    "levelTitle": "초급자",
+    "subsectorName": "금융권",
+    "reason": "현재 레벨 진행 중",
+    "progressPercentage": 50,
+    "remainingQuizzes": 2,
+    "difficulty": "EASY",
+    "estimatedTime": 30,
+    "learningGoal": "1금융권과 2금융권의 차이를 배워요."
+  },
+  "currentLevelSession": {
+    "sessionId": "level_1_1499",
+    "levelId": 1,
+    "levelTitle": "초급자",
+    "subsectorName": "금융권",
+    "startedAt": null,
+    "timeLimit": 3600,
+    "timeRemaining": 3600,
+    "currentQuizIndex": 0,
+    "completedQuizzes": 0,
+    "correctAnswers": 0,
+    "remainingToPass": 3,
+    "status": "NOT_STARTED"
+  }
+}
+```
+
+</details>
+
+#### 오답 노트 통계
+```http
+GET /api/wrong-notes/statistics?userId={userId}
 ```
 
 ---
@@ -427,7 +893,29 @@ GET /api/admin/wrong-notes/dashboard
 
 ### 인증 방식
 - **JWT 토큰**: `Authorization: Bearer {token}`
+- **자동 사용자 식별**: JWT 토큰에서 자동으로 사용자 ID 추출
 - **개발 편의**: 대부분 API에서 `userId` 파라미터로 접근 가능
+
+<details>
+<summary><strong>📋 JWT 토큰 사용 예시</strong></summary>
+
+```javascript
+// 1. 게스트 로그인으로 토큰 획득
+const loginResponse = await fetch('https://finsight.o-r.kr/api/auth/guest', {
+    method: 'POST'
+});
+const { accessToken, userId } = await loginResponse.json();
+
+// 2. 모든 API 호출에 토큰 포함
+const response = await fetch('https://finsight.o-r.kr/api/dashboard?userId=1499', {
+    headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+    }
+});
+```
+
+</details>
 
 ### CORS 설정
 - **허용 오리진**: 모든 도메인

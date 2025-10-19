@@ -582,7 +582,7 @@ INDEX idx_community_post_created ON community_posts(created_at DESC);
 
 - **[📚 API 명세서](docs/API.md)** - 전체 REST API 엔드포인트 및 사용법
 - **[Swagger UI (로컬)](http://localhost:8080/api/swagger-ui/index.html)** - 대화형 API 문서
-- **[Swagger UI (프로덕션)](http://54.180.103.186:8080/api/swagger-ui/index.html)** - 프로덕션 API 문서
+- **[Swagger UI (프로덕션)](https://finsight.o-r.kr/api/swagger-ui/index.html)** - 프로덕션 API 문서
 
 ### API 엔드포인트 요약
 
@@ -616,12 +616,12 @@ INDEX idx_community_post_created ON community_posts(created_at DESC);
 
 ### 자동 배포 시스템
 - **GitHub Actions** 기반 CI/CD 파이프라인 구축
-- **코드 푸시 시 자동 배포** (2분 내 완료)
+- **코드 푸시 시 자동 배포** (3-4분 내 완료)
 - **Docker 컨테이너 자동 재시작**
 - **헬스체크 기반 배포 검증**
 
 ### 배포 성과
-- 🚀 **배포 시간 90% 단축** (20분 → 2분)
+- 🚀 **배포 시간 80% 단축** (20분 → 3-4분)
 - 🚀 **배포 빈도 300% 증가** (주 1-2회 → 일 3-5회)
 - 🚀 **배포 실패율 87% 감소** (15% → 2%)
 
@@ -675,6 +675,8 @@ java -jar build/libs/fin-main-server-0.0.1-SNAPSHOT.jar --spring.profiles.active
 
 서버가 실행되면 `http://localhost:8080/api`에서 접근 가능합니다.
 
+**프로덕션 서버**: `https://finsight.o-r.kr/api`
+
 ### 2. Docker를 사용한 로컬 실행
 
 ```bash
@@ -726,7 +728,7 @@ docker-compose -f docker-compose.prod.yml up -d
 
 ```bash
 # 헬스체크
-curl http://your-server-ip/api/health
+curl https://finsight.o-r.kr/api/actuator/health
 
 # 컨테이너 상태 확인
 docker ps
@@ -739,7 +741,7 @@ docker logs fintech-nginx-prod
 ### 4. Swagger UI 접근
 
 - **로컬**: http://localhost:8080/api/swagger-ui/index.html
-- **프로덕션**: http://your-server-ip/api/swagger-ui/index.html
+- **프로덕션**: https://finsight.o-r.kr/api/swagger-ui/index.html
 
 ---
 
@@ -771,6 +773,9 @@ GET /api/actuator/info
 
 # 메트릭 조회
 GET /api/actuator/metrics
+
+# 프로덕션 헬스체크
+curl https://finsight.o-r.kr/api/actuator/health
 ```
 
 ### 로그 레벨 설정
@@ -789,12 +794,13 @@ logging:
 ## 🔒 보안 고려사항
 
 1. **비밀번호 암호화**: BCrypt 알고리즘 사용
-2. **JWT 토큰**: HS512 알고리즘, 24시간 유효기간
+2. **JWT 토큰**: HS384 알고리즘, 30일 유효기간
 3. **SQL Injection 방지**: JPA PreparedStatement 사용
 4. **XSS 방지**: Spring Security 기본 헤더 적용
-5. **CORS 설정**: 허용된 오리진만 접근 가능
+5. **CORS 설정**: 모든 오리진 허용 (개발 편의성)
 6. **환경 변수**: 민감 정보는 환경 변수로 관리
-7. **HTTPS**: 프로덕션 환경에서 SSL/TLS 적용
+7. **HTTPS**: 프로덕션 환경에서 SSL/TLS 적용 (Nginx)
+8. **게스트 계정 자동 정리**: 24시간 후 자동 삭제
 
 ---
 
@@ -802,58 +808,24 @@ logging:
 
 ### 완료된 기능
 - ✅ JWT 기반 인증 시스템
+- ✅ 게스트 로그인 시스템 (24시간 자동 정리)
 - ✅ 계층적 학습 콘텐츠 구조
 - ✅ 퀴즈 실행 및 채점 시스템
 - ✅ 오답 노트 기능
-- ✅ 배지 시스템
-- ✅ 커뮤니티 기능
+- ✅ 배지 시스템 (6단계 등급)
+- ✅ 커뮤니티 기능 (게시글, 댓글, 좋아요)
 - ✅ 대시보드 및 통계
 - ✅ Docker 기반 배포
+- ✅ CI/CD 파이프라인 (GitHub Actions)
+- ✅ Nginx 리버스 프록시
+- ✅ AWS EC2 프로덕션 배포
 
 ### 계획 중인 기능
 - 🔜 Redis 캐싱 도입
 - 🔜 ElasticSearch 검색 기능
 - 🔜 실시간 알림 (WebSocket)
-- 🔜 AI 기반 개인화 추천
 - 🔜 소셜 로그인 (OAuth 2.0)
 - 🔜 이메일 인증 시스템
-- 🔜 CI/CD 파이프라인 (GitHub Actions)
 - 🔜 모니터링 대시보드 (Grafana)
 
 ---
-
-## 🤝 기여하기
-
-1. Fork the Project
-2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the Branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
----
-
-## 📄 라이선스
-
-이 프로젝트는 MIT 라이선스 하에 배포됩니다.
-
----
-
-## 👥 개발팀
-
-- **Backend Developer**: [Your Name]
-- **Database Design**: [Your Name]
-- **DevOps Engineer**: [Your Name]
-
----
-
-## 📞 문의
-
-프로젝트에 대한 문의사항이 있으시면 이메일로 연락주세요.
-
-- **Email**: your.email@example.com
-- **GitHub**: [Your GitHub Profile]
-
----
-
-**⭐ 이 프로젝트가 도움이 되었다면 Star를 눌러주세요!**
-# 배포 확인용 - 동물 이름 변경 코드 반영
