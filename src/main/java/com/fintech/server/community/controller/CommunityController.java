@@ -5,7 +5,9 @@ import com.fintech.server.community.service.CommunityService;
 import com.fintech.server.community.service.PostLikeService;
 import com.fintech.server.community.service.CommentService;
 import com.fintech.server.service.AuthService;
+import com.fintech.server.dto.TokenResponseDto;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -18,6 +20,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/community/posts") // context-path(/api) 제외
 @RequiredArgsConstructor
+@Slf4j
 public class CommunityController {
 
     private final CommunityService communityService;
@@ -65,8 +68,15 @@ public class CommunityController {
             // JWT 토큰 처리 실패시 기존 게스트 사용자 ID 사용
         }
         
-        // 3. 토큰이 없거나 유효하지 않은 경우 새로 생성된 게스트 사용자 ID 사용
-        return 1330L;
+        // 3. 토큰이 없거나 유효하지 않은 경우 게스트 사용자 생성 후 ID 반환
+        try {
+            TokenResponseDto guestResponse = authService.createGuestUserAndLogin();
+            log.info("자동 게스트 사용자 생성: userId={}", guestResponse.getUserId());
+            return guestResponse.getUserId();
+        } catch (Exception e) {
+            log.error("게스트 사용자 자동 생성 실패, 기본값 사용", e);
+            return 1330L; // 최후의 수단
+        }
     }
 
     @GetMapping
