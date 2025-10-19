@@ -21,7 +21,8 @@ public interface PostLikeRepository extends JpaRepository<PostLike, PostLikeId> 
     /**
      * 특정 사용자가 특정 게시글에 좋아요를 눌렀는지 확인합니다.
      */
-    boolean existsByUserIdAndPostId(Long userId, Long postId);
+    @Query("SELECT COUNT(pl) > 0 FROM PostLike pl WHERE pl.userId = :userId AND pl.postId = :postId")
+    boolean existsByUserIdAndPostId(@Param("userId") Long userId, @Param("postId") Long postId);
     
     /**
      * 특정 사용자가 특정 게시글에 누른 좋아요를 삭제합니다.
