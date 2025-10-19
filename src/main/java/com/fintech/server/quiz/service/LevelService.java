@@ -375,7 +375,7 @@ public class LevelService {
         double passRate = completedQuizzes > 0 ? (double) passedQuizzes / completedQuizzes : 0.0;
         
         // 레벨 정보를 사용하여 단계 설명 생성
-        String stepDescription = level.getTitle() != null ? level.getTitle() : "기초 금융 상식";
+        String stepDescription = level.getTitle() != null ? level.getTitle() : "기초 상식";
         if (level.getLearningGoal() != null && !level.getLearningGoal().trim().isEmpty()) {
             stepDescription = level.getLearningGoal();
         }

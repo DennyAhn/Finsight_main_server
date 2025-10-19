@@ -85,9 +85,33 @@ public class WrongNoteDto {
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
+    public static class SubsectorStatistics {
+        private Long subsectorId;
+        private String subsectorName;
+        private Long wrongCount; // 해당 서브섹터에서 틀린 문제 수
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class LevelStatistics {
+        private Long levelId;
+        private Integer levelNumber;
+        private String levelTitle;
+        private String subsectorName; // 소속 서브섹터명
+        private Long wrongCount; // 해당 레벨에서 틀린 문제 수
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class ListResponse {
         private List<Response> wrongNotes;
         private Statistics statistics;
+        private List<SubsectorStatistics> subsectorStatistics; // 서브섹터별 틀린 문제 수
+        private List<LevelStatistics> levelStatistics; // 레벨별 틀린 문제 수
         private Integer totalPages;
         private Integer currentPage;
         private Integer pageSize;

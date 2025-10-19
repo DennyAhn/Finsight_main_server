@@ -368,3 +368,133 @@ public ResponseEntity<PostResponseDto> getPost(@PathVariable Long postId, HttpSe
 **작업 완료일**: 2025-10-19  
 **상태**: ✅ 완료  
 **영향도**: 🟢 기존 기능에 영향 없음, 성능 대폭 개선
+
+---
+
+## 📝 프론트엔드 개발자를 위한 오답노트 API 목록
+
+### **1. 서브섹터별 틀린 문제 수 확인 API**
+
+**엔드포인트:** `GET /api/wrong-notes`
+
+**파라미터:**
+- `userId` (필수): 사용자 ID
+- `page` (선택, 기본값: 0): 페이지 번호
+- `size` (선택, 기본값: 20): 페이지 크기
+- `filter` (선택, 기본값: "all"): 필터 옵션
+
+**응답에서 확인할 필드:**
+```json
+{
+  "subsectorStatistics": [
+    {
+      "subsectorId": 1,
+      "subsectorName": "금융기관",
+      "wrongCount": 4
+    },
+    {
+      "subsectorId": 3,
+      "subsectorName": "은행업",
+      "wrongCount": 8
+    },
+    {
+      "subsectorId": 5,
+      "subsectorName": "보험업",
+      "wrongCount": 3
+    }
+  ]
+}
+```
+
+---
+
+### **2. 레벨별 틀린 문제 수 확인 API**
+
+**엔드포인트:** `GET /api/wrong-notes` (동일한 API)
+
+**응답에서 확인할 필드:**
+```json
+{
+  "levelStatistics": [
+    {
+      "levelId": 8,
+      "levelNumber": 1,
+      "levelTitle": "금융기관 개론",
+      "subsectorName": "금융기관",
+      "wrongCount": 2
+    },
+    {
+      "levelId": 15,
+      "levelNumber": 1,
+      "levelTitle": "은행업 기초",
+      "subsectorName": "은행업",
+      "wrongCount": 5
+    },
+    {
+      "levelId": 16,
+      "levelNumber": 2,
+      "levelTitle": "은행업 심화",
+      "subsectorName": "은행업",
+      "wrongCount": 3
+    }
+  ]
+}
+```
+
+---
+
+### **3. 특정 오답노트 상세 조회 API**
+
+**엔드포인트:** `GET /api/wrong-notes/{noteId}`
+
+**파라미터:**
+- `noteId` (경로변수): 오답노트 ID
+- `userId` (쿼리파라미터): 사용자 ID
+
+**응답 예시:**
+```json
+{
+  "id": 123,
+  "userId": 63,
+  "questionId": 456,
+  "questionText": "문제 내용...",
+  "lastAnswerOptionId": 789,
+  "lastAnswerText": "선택한 답변...",
+  "correctOptionId": 790,
+  "correctAnswerText": "정답...",
+  "timesWrong": 2,
+  "firstWrongAt": "2024-01-15T10:30:00",
+  "lastWrongAt": "2024-01-16T14:20:00",
+  "reviewedAt": null,
+  "resolved": false,
+  "personalNoteMd": "개인 메모...",
+  "snapshotTeachingSummaryMd": "학습 요약...",
+  "snapshotTeachingExplainerMd": "학습 설명...",
+  "snapshotKeypointsMd": "핵심 포인트...",
+  "createdAt": "2024-01-15T10:30:00",
+  "updatedAt": "2024-01-16T14:20:00",
+  "quizTitle": "퀴즈 제목",
+  "sectorName": "금융",
+  "subsectorName": "은행업",
+  "allOptions": [
+    {
+      "id": 789,
+      "text": "선택지 A",
+      "isCorrect": false
+    },
+    {
+      "id": 790,
+      "text": "선택지 B",
+      "isCorrect": true
+    }
+  ]
+}
+```
+
+---
+
+## 🚀 **핵심 포인트**
+
+- **서브섹터별**과 **레벨별** 통계는 **같은 API**에서 한 번에 조회
+- **정렬**: 서브섹터 ID 순서대로, 레벨 ID 순서대로 (오름차순)
+- **필터**: `all`, `unresolved`, `resolved`, `needreview`

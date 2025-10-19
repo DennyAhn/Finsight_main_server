@@ -13,7 +13,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -114,10 +116,18 @@ public class WrongNoteService {
 
         // 통계 정보 조회
         WrongNoteDto.Statistics statistics = getWrongNoteStatistics(userId);
+        
+        // 서브섹터별 통계 정보 조회
+        List<WrongNoteDto.SubsectorStatistics> subsectorStatistics = getSubsectorStatistics(userId);
+        
+        // 레벨별 통계 정보 조회
+        List<WrongNoteDto.LevelStatistics> levelStatistics = getLevelStatistics(userId);
 
         return WrongNoteDto.ListResponse.builder()
                 .wrongNotes(responseList)
                 .statistics(statistics)
+                .subsectorStatistics(subsectorStatistics)
+                .levelStatistics(levelStatistics)
                 .totalPages((int) Math.ceil((double) wrongNotes.size() / size))
                 .currentPage(page)
                 .pageSize(size)
@@ -223,6 +233,71 @@ public class WrongNoteService {
                 .resolvedCount(wrongNoteRepository.countResolvedByUserId(userId))
                 .needReviewCount((long) wrongNoteRepository.findNeedReviewByUserId(userId).size())
                 .build();
+    }
+
+    /**
+     * 서브섹터별 틀린 문제 수 통계 조회
+     */
+    public List<WrongNoteDto.SubsectorStatistics> getSubsectorStatistics(Long userId) {
+        List<UserWrongNote> wrongNotes = wrongNoteRepository.findByUserIdOrderByLastWrongAtDesc(userId);
+        
+        // 서브섹터별로 그룹화하여 틀린 문제 수 계산
+        Map<Long, Map<String, Long>> subsectorMap = wrongNotes.stream()
+                .collect(Collectors.groupingBy(
+                        note -> note.getQuestion().getQuiz().getLevel().getSubsector().getId(),
+                        Collectors.groupingBy(
+                                note -> note.getQuestion().getQuiz().getLevel().getSubsector().getName(),
+                                Collectors.counting()
+                        )
+                ));
+        
+        return subsectorMap.entrySet().stream()
+                .map(entry -> {
+                    Long subsectorId = entry.getKey();
+                    Map<String, Long> nameCountMap = entry.getValue();
+                    String subsectorName = nameCountMap.keySet().iterator().next();
+                    Long wrongCount = nameCountMap.values().iterator().next();
+                    
+                    return WrongNoteDto.SubsectorStatistics.builder()
+                            .subsectorId(subsectorId)
+                            .subsectorName(subsectorName)
+                            .wrongCount(wrongCount)
+                            .build();
+                })
+                .sorted(Comparator.comparing(WrongNoteDto.SubsectorStatistics::getSubsectorId))
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 레벨별 틀린 문제 수 통계 조회
+     */
+    public List<WrongNoteDto.LevelStatistics> getLevelStatistics(Long userId) {
+        List<UserWrongNote> wrongNotes = wrongNoteRepository.findByUserIdOrderByLastWrongAtDesc(userId);
+        
+        // 레벨별로 그룹화하여 틀린 문제 수 계산
+        Map<Long, List<UserWrongNote>> levelMap = wrongNotes.stream()
+                .collect(Collectors.groupingBy(
+                        note -> note.getQuestion().getQuiz().getLevel().getId()
+                ));
+        
+        return levelMap.entrySet().stream()
+                .map(entry -> {
+                    Long levelId = entry.getKey();
+                    List<UserWrongNote> levelNotes = entry.getValue();
+                    
+                    // 첫 번째 요소에서 레벨 정보 추출
+                    UserWrongNote firstNote = levelNotes.get(0);
+                    
+                    return WrongNoteDto.LevelStatistics.builder()
+                            .levelId(levelId)
+                            .levelNumber(firstNote.getQuestion().getQuiz().getLevel().getLevelNumber())
+                            .levelTitle(firstNote.getQuestion().getQuiz().getLevel().getTitle())
+                            .subsectorName(firstNote.getQuestion().getQuiz().getLevel().getSubsector().getName())
+                            .wrongCount((long) levelNotes.size())
+                            .build();
+                })
+                .sorted(Comparator.comparing(WrongNoteDto.LevelStatistics::getLevelId))
+                .collect(Collectors.toList());
     }
 
     /**
