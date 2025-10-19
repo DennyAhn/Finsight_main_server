@@ -185,9 +185,10 @@ public class CommunityController {
     @PostMapping("/{postId}/comments")
     public ResponseEntity<CommentResponseDto> createComment(@PathVariable Long postId, 
                                                            @RequestBody CommentRequestDto requestDto,
+                                                           @RequestParam(required = false) Long userId,
                                                            HttpServletRequest request) {
         try {
-            Long currentUserId = getCurrentUserId(request);
+            Long currentUserId = userId != null ? userId : getCurrentUserId(request);
             CommentResponseDto response = commentService.createComment(postId, requestDto, currentUserId);
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
         } catch (Exception e) {
