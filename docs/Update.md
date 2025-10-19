@@ -290,3 +290,168 @@ AWS가 자동으로 올바른 사용자 이름과 임시 키를 생성하여 접
 **해결 일시**: 2025년 10월 5일
 **문제**: SSH 접속 권한 거부 (잘못된 사용자 이름)
 **해결**: `ubuntu` → `ec2-user`로 변경
+
+---
+
+# 퀴즈 시스템 핵심 기능 업데이트
+
+## 📋 시스템 개요
+**금융 교육 플랫폼의 완전한 퀴즈 학습 시스템**으로, 사용자가 섹터 → 서브섹터 → 레벨 → 퀴즈 순서로 학습하며, 실시간 정답 체크와 배지 시스템이 연동된 종합적인 학습 플랫폼입니다.
+
+---
+
+## 🏗️ 시스템 아키텍처
+
+### 📊 데이터 구조
+- **7개 섹터** × **3개 서브섹터** = **21개 서브섹터**
+- **각 서브섹터마다 3개 레벨** (초급자/중급자/고급자) = **63개 레벨**
+- **각 레벨마다 1개 퀴즈** = **63개 퀴즈**
+- **각 퀴즈마다 4개 문제** = **252개 문제**
+
+### 🎚️ 난이도 시스템
+- **초급자**: 4문제 중 1개 이상 정답 (25% 이상)
+- **중급자**: 4문제 중 2개 이상 정답 (50% 이상)  
+- **고급자**: 4문제 중 3개 이상 정답 (75% 이상)
+
+---
+
+## 🚀 핵심 기능
+
+### 1️⃣ 실시간 정답 체크 시스템
+- **문제별 즉시 피드백**: 각 문제를 풀 때마다 정답 여부와 해설 제공
+- **서버 기반 정답 검증**: 보안성을 위한 서버에서 정답 체크
+- **마크다운 해설 지원**: 풍부한 해설과 학습 자료 제공
+
+### 2️⃣ 완전한 점수 시스템
+- **정답 기반 점수**: 맞춘 문제만 점수 획득 (1정답 = 1점)
+- **퀴즈 완료 처리**: 4문제 완료 후 최종 점수 집계
+- **통과 여부 판정**: 레벨별 기준에 따른 자동 통과/실패 처리
+
+### 3️⃣ 자동 배지 시스템
+- **6단계 배지**: 브론즈 → 실버 → 골드 → 플레티넘 → 다이아 → 마스터
+- **실시간 업데이트**: 퀴즈 완료 시 자동으로 배지 진행률 업데이트
+- **조건 기반 획득**: 퀴즈 완료 수 + 정답 수 기준으로 배지 획득
+
+### 4️⃣ 오답 노트 시스템
+- **자동 생성**: 틀린 문제 자동으로 오답 노트에 추가
+- **학습 지원**: 틀린 문제 재학습을 위한 시스템
+
+---
+
+## 🔄 완전한 API 플로우
+
+### 1️⃣ 섹터 및 서브섹터 조회
+```http
+GET /api/sectors
+GET /api/subsectors/{sectorId}
+```
+
+### 2️⃣ 레벨 및 퀴즈 조회
+```http
+GET /api/levels/{levelId}/quizzes
+GET /api/quizzes/{quizId}
+```
+
+### 3️⃣ 퀴즈 실행 및 채점
+```http
+POST /api/quizzes/submit-answer
+POST /api/quizzes/{quizId}/complete
+```
+
+### 4️⃣ 배지 및 진행률 조회
+```http
+GET /api/badges/user/{userId}/current
+GET /api/progress/user/{userId}/level/{levelId}
+```
+
+---
+
+## 🎯 징검다리 기능 개선
+
+### 문제점
+- 징검다리 `stepDescription`이 모든 서브섹터/레벨에서 "기초 금융 상식"으로 하드코딩됨
+- 사용자가 어떤 서브섹터의 어떤 레벨을 진행하든 동일한 설명만 표시됨
+
+### 해결 방법
+**파일**: `src/main/java/com/fintech/server/quiz/service/LevelService.java`
+```java
+// 수정 전
+String stepDescription = "기초 금융 상식";
+
+// 수정 후
+String stepDescription = level.getTitle() != null ? level.getTitle() : "기초 금융 상식";
+if (level.getLearningGoal() != null && !level.getLearningGoal().trim().isEmpty()) {
+    stepDescription = level.getLearningGoal();
+}
+```
+
+### 결과
+- ✅ **금융권 서브섹터**: "1금융권과 2금융권의 차이를 배워요."
+- ✅ **예금/적금 서브섹터**: "이자 계산 방식, 고정 vs 변동금리를 배워요."
+- ✅ **레벨별 차별화**: 초급자, 중급자, 고급자별로 다른 설명
+
+---
+
+## 🔧 LevelService 개선사항
+
+### 1. 하드코딩된 값 제거
+- `QUESTIONS_PER_LEVEL = 4` → `@Value("${quiz.questions-per-level:4}")`
+- `PASS_SCORE = 3` → `@Value("${quiz.pass-score:3}")`
+- `timeLimitPerQuestion = 15` → `@Value("${quiz.time-limit-per-question:15}")`
+- `estimatedTimePerQuiz = 5` → `@Value("${quiz.estimated-time-per-quiz:5}")`
+
+### 2. 예외 처리 개선
+- `RuntimeException` → `IllegalArgumentException`, `IllegalStateException`
+- 더 구체적인 예외 메시지 제공
+
+### 3. 시간 계산 개선
+- `calculateActualTimeSpent()` 메서드 추가
+- 실제 소요시간과 예상 시간을 구분하여 계산
+
+### 4. 설정 파일 추가
+**application.yml**:
+```yaml
+quiz:
+  questions-per-level: 4
+  pass-score: 3
+  time-limit-per-question: 15
+  estimated-time-per-quiz: 5
+```
+
+---
+
+## 📊 성능 최적화
+
+### 1. 쿼리 최적화
+- `findByIdWithQuizzes()`: LEFT JOIN FETCH로 N+1 문제 해결
+- `findByIdWithSubsector()`: 서브섹터 정보를 한 번에 조회
+
+### 2. 메모리 사용량 최적화
+- 불필요한 메서드 제거 (`getQuizProgress()`)
+- 사용하지 않는 import 정리
+
+### 3. 코드 가독성 향상
+- 메서드명을 더 명확하게 변경
+- 주석 및 문서화 개선
+
+---
+
+## 🎉 최종 결과
+
+### 기능적 개선
+- ✅ **동적 설명 생성**: 서브섹터/레벨별 맞춤형 징검다리 설명
+- ✅ **설정 가능한 값**: 하드코딩 제거로 유연성 증대
+- ✅ **정확한 시간 계산**: 실제 소요시간 기반 진행률 계산
+- ✅ **향상된 예외 처리**: 더 구체적인 오류 메시지
+
+### 기술적 개선
+- ✅ **성능 최적화**: N+1 쿼리 문제 해결
+- ✅ **코드 품질**: 가독성 및 유지보수성 향상
+- ✅ **설정 관리**: 외부 설정 파일을 통한 값 관리
+- ✅ **메모리 효율성**: 불필요한 코드 제거
+
+---
+
+**업데이트 일시**: 2025년 10월 19일
+**담당자**: AI Assistant
+**관련 이슈**: 징검다리 기능 개선 및 성능 최적화
