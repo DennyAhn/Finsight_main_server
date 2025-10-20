@@ -135,7 +135,7 @@
 - **Docker & Docker Compose** - 컨테이너화 및 오케스트레이션
 - **Nginx** - 리버스 프록시 및 로드 밸런싱
 - **AWS EC2** - 애플리케이션 호스팅
-- **GitHub Actions** - CI/CD 파이프라인 (계획 중)
+- **GitHub Actions** - CI/CD 파이프라인 
 
 ### Build Tool
 - **Gradle 8.x** - 의존성 관리 및 빌드 자동화
